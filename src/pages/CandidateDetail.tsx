@@ -1,0 +1,653 @@
+import { useState } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Download,
+  MessageCircle,
+  Mail,
+  Phone,
+  MapPin,
+  Linkedin,
+  Calendar,
+  Clock,
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
+  AlertTriangle,
+  ArrowLeft,
+  Sparkles,
+  RefreshCw,
+  Send,
+  ExternalLink,
+} from "lucide-react";
+import { mockCandidates } from "@/lib/mockData";
+import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+
+export default function CandidateDetail() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const candidate = mockCandidates.find((c) => c.id === id) || mockCandidates[0];
+  
+  const [skillGapOpen, setSkillGapOpen] = useState(true);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [scheduleDuration, setScheduleDuration] = useState("45");
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successType, setSuccessType] = useState<"interview" | "rejection">("interview");
+  const [newNote, setNewNote] = useState("");
+
+  const handleScheduleInterview = () => {
+    setSuccessType("interview");
+    setShowSuccessModal(true);
+    toast({
+      title: "Interview Scheduled!",
+      description: `Interview invitation sent to ${candidate.name}.`,
+    });
+  };
+
+  const handleReject = () => {
+    setSuccessType("rejection");
+    setShowSuccessModal(true);
+    toast({
+      title: "Rejection Email Sent",
+      description: `${candidate.name} has been notified.`,
+    });
+  };
+
+  const skillMatchPercent = Math.round(
+    (candidate.skillGaps.filter((s) => s.status === "Fully Met").length / candidate.skillGaps.length) * 100
+  );
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Sub-header */}
+      <div className="border-b border-border bg-card px-6 py-3">
+        <div className="flex items-center gap-2 text-sm">
+          <Link to="/candidates" className="text-muted-foreground hover:text-foreground">
+            Candidates
+          </Link>
+          <span className="text-muted-foreground">/</span>
+          <Link to="/candidates" className="text-muted-foreground hover:text-foreground">
+            Designers
+          </Link>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-primary">{candidate.name}</span>
+          <div className="ml-auto">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/candidates">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to list
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-6 py-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left Sidebar - Profile Card */}
+          <div className="lg:col-span-3 space-y-6">
+            <div className="card-elevated p-6 text-center">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-2xl font-bold text-primary mx-auto mb-4">
+                {candidate.initials}
+              </div>
+              <h2 className="text-xl font-bold text-foreground">{candidate.name}</h2>
+              <p className="text-muted-foreground">{candidate.role}</p>
+              
+              <div className="flex items-center justify-center gap-1 mt-2 text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5" />
+                {candidate.location}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">8 Years Experience</p>
+
+              <div className="flex flex-col gap-2 mt-6">
+                <Button variant="outline" className="w-full gap-2">
+                  <Download className="h-4 w-4" />
+                  Download Resume
+                </Button>
+                <Button variant="outline" className="w-full gap-2 text-success border-success/30 hover:bg-success/10">
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp Reminder
+                </Button>
+              </div>
+
+              <div className="flex justify-center gap-3 mt-4">
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Linkedin className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Mail className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Skills */}
+            <div className="card-elevated p-6">
+              <h3 className="font-semibold text-foreground mb-3">Top Skills</h3>
+              <div className="flex flex-wrap gap-2">
+                {candidate.skills.map((skill) => (
+                  <Badge key={skill} variant="secondary">{skill}</Badge>
+                ))}
+                <Badge variant="outline" className="text-muted-foreground">+4 more</Badge>
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div className="card-elevated p-6">
+              <h3 className="font-semibold text-foreground mb-3">Contact Information</h3>
+              <div className="space-y-3 text-sm">
+                <a href={`mailto:${candidate.email}`} className="flex items-center gap-2 text-primary hover:underline">
+                  <Mail className="h-4 w-4" />
+                  {candidate.email}
+                </a>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Phone className="h-4 w-4" />
+                  {candidate.phone}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="lg:col-span-9 space-y-6">
+            {/* Status Actions Bar */}
+            <div className="card-elevated p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-sm text-muted-foreground">Current Status: </span>
+                  <span className="font-medium">{candidate.status}</span>
+                  <span className="text-sm text-muted-foreground ml-2">Applied 3 days ago via LinkedIn</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm">
+                    <X className="h-4 w-4 mr-1" />
+                    Reject & Email
+                  </Button>
+                  <Button variant="outline" size="sm">Hold</Button>
+                  <Button className="btn-gradient" size="sm">
+                    <Check className="h-4 w-4 mr-1" />
+                    Shortlist & Schedule
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Schedule Interview Section */}
+            <div className="card-elevated p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  Schedule Interview
+                </h3>
+                <Button variant="link" className="text-muted-foreground text-sm p-0">
+                  Draft Mode
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Date</label>
+                  <Input
+                    type="date"
+                    value={scheduleDate}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Time</label>
+                  <Input
+                    type="time"
+                    value={scheduleTime}
+                    onChange={(e) => setScheduleTime(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Duration</label>
+                  <Select value={scheduleDuration} onValueChange={setScheduleDuration}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 Minutes</SelectItem>
+                      <SelectItem value="45">45 Minutes</SelectItem>
+                      <SelectItem value="60">60 Minutes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">EMAIL PREVIEW</span>
+                  <Button variant="link" className="text-primary text-sm p-0">Edit Template</Button>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <p>"Hi Sarah,</p>
+                  <p className="mt-2">We're impressed with your application and would love to chat. I've scheduled a 45-minute video call for <strong className="text-foreground">Nov 14 at 10:00 AM</strong>. A calendar invite will follow this email.</p>
+                  <p className="mt-2">Best,<br/>Recruit-AI Team"</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Button variant="ghost" className="gap-2 text-muted-foreground">
+                  <MessageCircle className="h-4 w-4" />
+                  Share via WhatsApp
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline">Cancel</Button>
+                  <Button className="btn-gradient gap-2" onClick={handleScheduleInterview}>
+                    <Send className="h-4 w-4" />
+                    Schedule Interview & Email Candidate
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Reject Application Section */}
+            <div className="card-elevated p-6">
+              <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
+                <X className="h-4 w-4 text-destructive" />
+                Reject Application
+              </h3>
+
+              <div className="mb-4">
+                <label className="text-sm text-muted-foreground mb-1 block">Rejection Reason</label>
+                <Select value={rejectionReason} onValueChange={setRejectionReason}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="experience">Experience mismatch</SelectItem>
+                    <SelectItem value="skills">Skills gap</SelectItem>
+                    <SelectItem value="salary">Salary expectations</SelectItem>
+                    <SelectItem value="culture">Culture fit</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">EMAIL PREVIEW</span>
+                  <Button variant="link" className="text-primary text-sm p-0">Edit Template</Button>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <p>"Hi Sarah,</p>
+                  <p className="mt-2">Thank you for giving us the opportunity to consider your application. We appreciate the time you took to apply.</p>
+                  <p className="mt-2">Unfortunately, we have decided to move forward with other candidates who more closely match our current requirements. We will keep your resume on file for future openings.</p>
+                  <p className="mt-2">Best,<br/>Recruit-AI Team"</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <Button variant="ghost" className="gap-2 text-muted-foreground">
+                  <MessageCircle className="h-4 w-4" />
+                  Share via WhatsApp
+                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline">Cancel</Button>
+                  <Button variant="destructive" className="gap-2" onClick={handleReject}>
+                    <X className="h-4 w-4" />
+                    Reject & Send Rejection Email
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Analysis */}
+            <div className="card-elevated p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  Recruit-AI Analysis
+                </h3>
+                <div className="flex items-center gap-4 text-sm">
+                  <span className="text-muted-foreground">BASE: <strong className="text-foreground">{candidate.baseScore}%</strong></span>
+                  <span className="text-muted-foreground">WEIGHTED: <strong className="text-primary">{candidate.weightedScore}%</strong></span>
+                </div>
+              </div>
+
+              <p className="text-muted-foreground mb-6">
+                Sarah is a <strong className="text-foreground">strong match</strong> for the Senior Designer role. She has extensive experience in B2B SaaS product design, particularly in fin-tech environments which aligns with our current roadmap. Her portfolio demonstrates a clear ability to simplify complex workflows.
+              </p>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium text-success flex items-center gap-2 mb-3">
+                    <Check className="h-4 w-4" />
+                    Key Strengths
+                  </h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-success mt-0.5" />
+                      Proven leadership in agile teams managing 3+ juniors at Stripe.
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-success mt-0.5" />
+                      Strong prototyping skills (Figma, Principle) demonstrated in portfolio.
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <Check className="h-4 w-4 text-success mt-0.5" />
+                      Consistent tenure with previous employers (avg 3.5 years).
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-medium text-warning flex items-center gap-2 mb-3">
+                    <AlertTriangle className="h-4 w-4" />
+                    Potential Gaps
+                  </h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-warning mt-0.5" />
+                      Limited recent experience with React/front-end code.
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <AlertTriangle className="h-4 w-4 text-warning mt-0.5" />
+                      Salary expectation is slightly above budget range.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Skills Gap Analysis */}
+            <Collapsible open={skillGapOpen} onOpenChange={setSkillGapOpen}>
+              <div className="card-elevated p-6">
+                <CollapsibleTrigger className="flex items-center justify-between w-full">
+                  <h3 className="font-semibold text-foreground flex items-center gap-2">
+                    📊 Skills Gap Analysis
+                  </h3>
+                  {skillGapOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className="mt-4">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-xs text-muted-foreground uppercase tracking-wide">
+                        <th className="pb-3">Skill</th>
+                        <th className="pb-3">Candidate Match Status</th>
+                        <th className="pb-3">Brief Note</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {candidate.skillGaps.map((gap, index) => (
+                        <tr key={index}>
+                          <td className="py-3">
+                            <div>
+                              <span className="font-medium">{gap.skill}</span>
+                              <Badge 
+                                variant="outline" 
+                                className={cn(
+                                  "ml-2 text-xs",
+                                  gap.priority === "Essential" && "border-destructive/50 text-destructive",
+                                  gap.priority === "Preferred" && "border-primary/50 text-primary",
+                                  gap.priority === "Nice-to-have" && "border-muted-foreground"
+                                )}
+                              >
+                                {gap.priority}
+                              </Badge>
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            <span className={cn(
+                              "flex items-center gap-1 text-sm",
+                              gap.status === "Fully Met" && "text-success",
+                              gap.status === "Partial Match" && "text-warning",
+                              gap.status === "Missing" && "text-destructive"
+                            )}>
+                              {gap.status === "Fully Met" && <Check className="h-4 w-4" />}
+                              {gap.status === "Partial Match" && <AlertTriangle className="h-4 w-4" />}
+                              {gap.status === "Missing" && <X className="h-4 w-4" />}
+                              {gap.status}
+                            </span>
+                          </td>
+                          <td className="py-3 text-sm text-muted-foreground">{gap.note}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+                    <div className="flex items-center gap-6">
+                      <div>
+                        <span className="text-xs text-muted-foreground uppercase tracking-wide">Skill Match</span>
+                        <p className="text-2xl font-bold text-foreground">{skillMatchPercent}%</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-muted-foreground uppercase tracking-wide">Overall Fit</span>
+                        <p className="text-2xl font-bold text-success">High</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" className="gap-2">
+                      <RefreshCw className="h-4 w-4" />
+                      Re-calculate Analysis
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+
+            {/* Experience */}
+            <div className="card-elevated p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-foreground">Experience</h3>
+                <Button variant="link" className="text-primary text-sm p-0">View Full Resume</Button>
+              </div>
+
+              <div className="space-y-6">
+                {candidate.experience.map((exp, index) => (
+                  <div key={index} className="flex gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <span className="text-primary font-medium text-sm">
+                        {exp.company.charAt(0)}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-medium text-foreground">{exp.title}</h4>
+                          <p className="text-sm text-primary">{exp.company}</p>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{exp.period}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-2">{exp.description}</p>
+                      {exp.tags.length > 0 && (
+                        <div className="flex gap-2 mt-2">
+                          {exp.tags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Education */}
+            <div className="card-elevated p-6">
+              <h3 className="font-semibold text-foreground mb-4">Education</h3>
+              <div className="space-y-4">
+                {candidate.education.map((edu, index) => (
+                  <div key={index} className="flex gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                      🎓
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-foreground">{edu.degree}</h4>
+                      <p className="text-sm text-muted-foreground">{edu.school}</p>
+                      <p className="text-sm text-muted-foreground">{edu.period}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Notes & Messages */}
+            <div className="card-elevated p-6">
+              <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
+                💬 Notes & Messages
+              </h3>
+
+              <div className="space-y-4 mb-4">
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary">
+                    JD
+                  </div>
+                  <div className="flex-1 bg-muted/50 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm">John Doe</span>
+                      <span className="text-xs text-muted-foreground">Yesterday at 2:30 PM</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      @PM check technical fit. The React experience seems light, but the design system work is stellar.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center text-xs font-medium text-success">
+                    You
+                  </div>
+                  <div className="flex-1 bg-primary/5 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm">You</span>
+                      <span className="text-xs text-muted-foreground">Today at 9:15 AM</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Agreed. The AI summary highlights her ability to learn quickly. Let's proceed with the interview to gauge her interest in learning more FE.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Add a private note or use @ to mention teammates..."
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                  className="flex-1"
+                />
+                <Button className="btn-gradient" size="icon">
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md text-center">
+          <div className="flex flex-col items-center py-6">
+            <div className={cn(
+              "w-16 h-16 rounded-full flex items-center justify-center mb-4",
+              successType === "interview" ? "bg-success/10" : "bg-primary/10"
+            )}>
+              <Check className={cn(
+                "h-8 w-8",
+                successType === "interview" ? "text-success" : "text-primary"
+              )} />
+            </div>
+            
+            <DialogTitle className="text-xl mb-2">
+              {successType === "interview" ? "Interview Scheduled!" : "Rejection Email Sent"}
+            </DialogTitle>
+            
+            <p className="text-muted-foreground mb-6">
+              {successType === "interview"
+                ? `An email invitation has been automatically sent to ${candidate.name}.`
+                : "The candidate has been successfully notified via email regarding the status of their application."}
+            </p>
+
+            {successType === "interview" && (
+              <div className="w-full bg-muted/50 rounded-lg p-4 mb-6 text-left">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                    {candidate.initials}
+                  </div>
+                  <div>
+                    <p className="font-medium">{candidate.name}</p>
+                    <p className="text-sm text-muted-foreground">{candidate.role}</p>
+                  </div>
+                </div>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    Tuesday, Oct 24, 2023
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    10:00 AM - 11:00 AM (EST)
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    <a href="#" className="text-primary hover:underline">meet.google.com/abc-defg-hij</a>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <Button
+              variant="outline"
+              className="w-full mb-3 gap-2 text-success border-success/30 hover:bg-success/10"
+            >
+              <MessageCircle className="h-4 w-4" />
+              {successType === "interview" ? "Send WhatsApp Reminder" : "Notify via WhatsApp"}
+            </Button>
+
+            {successType === "interview" && (
+              <Button variant="outline" className="w-full mb-3 gap-2">
+                📋 Copy Interview Link
+              </Button>
+            )}
+
+            <Button
+              className="w-full btn-gradient"
+              onClick={() => {
+                setShowSuccessModal(false);
+                navigate("/candidates");
+              }}
+            >
+              {successType === "interview" ? "Back to Dashboard" : "Return to Candidate List"}
+            </Button>
+
+            <Button
+              variant="link"
+              className="text-muted-foreground text-sm mt-2"
+              onClick={() => setShowSuccessModal(false)}
+            >
+              ↩ Undo this action
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
