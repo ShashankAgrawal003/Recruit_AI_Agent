@@ -96,7 +96,12 @@ export function ResumeUploader({
             type="file"
             accept=".pdf,.docx"
             className="hidden"
-            onChange={(e) => e.target.files && onFilesSelected(e.target.files)}
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                onFilesSelected(e.target.files);
+                e.target.value = ""; // Reset to allow re-selecting same file
+              }
+            }}
           />
           <input
             ref={bulkInputRef}
@@ -104,7 +109,12 @@ export function ResumeUploader({
             accept=".pdf,.docx"
             multiple
             className="hidden"
-            onChange={(e) => e.target.files && onFilesSelected(e.target.files)}
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) {
+                onFilesSelected(e.target.files);
+                e.target.value = ""; // Reset to allow re-selecting same files
+              }
+            }}
           />
 
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
