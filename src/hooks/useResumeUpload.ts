@@ -97,10 +97,13 @@ export function useResumeUpload(jdText?: string) {
 
       try {
         const formData = new FormData();
-        formData.append("resume_files", uploadFile.file);
-        if (jdText) {
-          formData.append("jd_text", jdText);
+        // Use the actual filename as key for better n8n compatibility
+        formData.append("resume_files", uploadFile.file, uploadFile.file.name);
+        if (jdText && jdText.trim()) {
+          formData.append("jd_text", jdText.trim());
         }
+        
+        console.log("Uploading file:", uploadFile.file.name, "Size:", uploadFile.file.size);
 
         // Simulate progress updates
         const progressInterval = setInterval(() => {
@@ -113,6 +116,8 @@ export function useResumeUpload(jdText?: string) {
           );
         }, 200);
 
+        console.log("Sending request to webhook:", WEBHOOK_URL);
+        
         const response = await fetch(WEBHOOK_URL, {
           method: "POST",
           body: formData,
@@ -120,16 +125,23 @@ export function useResumeUpload(jdText?: string) {
         });
 
         clearInterval(progressInterval);
+        
+        console.log("Response status:", response.status, response.statusText);
 
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Upload failed:", errorText);
           throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
         }
 
-        const data: WebhookResponse = await response.json();
-        const result = data.results?.[0] || {
-          score: Math.floor(Math.random() * 40) + 60,
-          summary: "Resume analyzed successfully. Strong technical background with relevant experience.",
-          recommendedAction: "Interview" as const,
+        const data = await response.json();
+        console.log("Webhook response:", data);
+        
+        // Handle different response formats from n8n
+        const result = data.results?.[0] || data.result || data || {
+          score: 0,
+          summary: "No analysis returned from server",
+          recommendedAction: "Hold" as const,
         };
 
         setFiles((prev) =>
