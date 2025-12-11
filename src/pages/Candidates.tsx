@@ -12,28 +12,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Upload,
   Search,
   ArrowRight,
   X,
   Eye,
   Check,
   Undo2,
-  FileText,
-  Trash2,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { mockCandidates, type Candidate } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
-import { Progress } from "@/components/ui/progress";
-
-interface UploadingFile {
-  name: string;
-  size: string;
-  progress: number;
-  status: "uploading" | "complete" | "queued";
-}
+import { useResumeUpload } from "@/hooks/useResumeUpload";
+import { ResumeUploader } from "@/components/ResumeUploader";
 
 function ScoreBar({ score, level }: { score: number; level: string }) {
   const colorClass = {
@@ -87,11 +78,20 @@ export default function Candidates() {
   const [sortBy, setSortBy] = useState("score");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
-  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([
-    { name: "sarah_jenkins_resume.pdf", size: "2.4 MB", progress: 65, status: "uploading" },
-    { name: "mark_davis_cv.pdf", size: "1.8 MB", progress: 100, status: "complete" },
-    { name: "alex_chen_portfolio.pdf", size: "3.2 MB", progress: 0, status: "queued" },
-  ]);
+  
+  // JD text for the active job - in a real app this would come from context/API
+  const activeJdText = `We are looking for a Senior React Engineer with 5+ years of experience in React, TypeScript, and modern frontend development. Experience with Node.js, GraphQL, and cloud services is preferred.`;
+  
+  const {
+    files,
+    isUploading,
+    addFiles,
+    removeFile,
+    clearAll,
+    uploadFiles,
+    retryFile,
+    cancelUpload,
+  } = useResumeUpload(activeJdText);
 
   const filteredCandidates = mockCandidates.filter((c) => {
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -133,82 +133,17 @@ export default function Candidates() {
         </div>
       </div>
 
-      {/* Upload Section */}
-      <div className="card-elevated p-6 mb-6">
-        <h2 className="font-semibold text-foreground mb-4">Upload Resumes</h2>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Upload Area */}
-          <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Upload className="h-6 w-6 text-primary" />
-            </div>
-            <p className="font-medium text-foreground mb-1">Drag & drop files here</p>
-            <p className="text-sm text-muted-foreground mb-4">or choose an upload option below</p>
-            
-            <div className="flex gap-3 justify-center">
-              <Button variant="outline" className="gap-2">
-                <FileText className="h-4 w-4" />
-                Single File
-              </Button>
-              <Button variant="outline" className="gap-2">
-                <Upload className="h-4 w-4" />
-                Bulk Upload
-              </Button>
-            </div>
-            
-            <p className="text-xs text-muted-foreground mt-4">
-              Supports PDF, DOCX (Max 10MB)
-            </p>
-          </div>
-
-          {/* Upload Progress */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm text-muted-foreground">Uploading 3 files...</span>
-              <Button variant="link" className="text-primary p-0 h-auto text-sm">
-                Cancel all
-              </Button>
-            </div>
-            
-            <div className="space-y-3">
-              {uploadingFiles.map((file, index) => (
-                <div key={index} className="p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="text-sm font-medium">{file.name}</p>
-                        {file.status === "complete" ? (
-                          <p className="text-xs text-success">Upload Complete</p>
-                        ) : file.status === "queued" ? (
-                          <p className="text-xs text-muted-foreground">Queued</p>
-                        ) : (
-                          <p className="text-xs text-muted-foreground">{file.size}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {file.status === "uploading" && (
-                        <span className="text-xs text-primary">{file.progress}%</span>
-                      )}
-                      {file.status === "complete" && (
-                        <Check className="h-4 w-4 text-success" />
-                      )}
-                      <Button variant="ghost" size="icon" className="h-6 w-6">
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  {file.status === "uploading" && (
-                    <Progress value={file.progress} className="h-1" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Upload Section with n8n Webhook Integration */}
+      <ResumeUploader
+        files={files}
+        isUploading={isUploading}
+        onFilesSelected={addFiles}
+        onRemoveFile={removeFile}
+        onRetryFile={retryFile}
+        onUpload={uploadFiles}
+        onCancelUpload={cancelUpload}
+        onClearAll={clearAll}
+      />
 
       {/* Active JD Banner */}
       <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 mb-6 flex items-center justify-between">
