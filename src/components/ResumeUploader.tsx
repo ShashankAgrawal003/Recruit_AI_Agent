@@ -42,6 +42,7 @@ export function ResumeUploader({
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
+      console.log("Drop event:", e.dataTransfer.files.length, "files");
       if (e.dataTransfer.files.length > 0) {
         onFilesSelected(e.dataTransfer.files);
       }
@@ -97,6 +98,7 @@ export function ResumeUploader({
             accept=".pdf,.docx"
             className="hidden"
             onChange={(e) => {
+              console.log("Single file input change:", e.target.files);
               if (e.target.files && e.target.files.length > 0) {
                 onFilesSelected(e.target.files);
                 e.target.value = ""; // Reset to allow re-selecting same file
@@ -110,6 +112,7 @@ export function ResumeUploader({
             multiple
             className="hidden"
             onChange={(e) => {
+              console.log("Bulk file input change:", e.target.files);
               if (e.target.files && e.target.files.length > 0) {
                 onFilesSelected(e.target.files);
                 e.target.value = ""; // Reset to allow re-selecting same files

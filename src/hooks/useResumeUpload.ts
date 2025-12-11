@@ -45,13 +45,21 @@ export function useResumeUpload(jdText?: string) {
 
   const addFiles = useCallback((newFiles: FileList | File[]) => {
     const fileArray = Array.from(newFiles);
-    const validFiles = fileArray.filter(
-      (file) =>
-        file.type === "application/pdf" ||
-        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-        file.name.endsWith(".pdf") ||
-        file.name.endsWith(".docx")
-    );
+    console.log("addFiles called with:", fileArray.map(f => ({ name: f.name, type: f.type, size: f.size })));
+    
+    const validFiles = fileArray.filter((file) => {
+      const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || 
+                     file.name.toLowerCase().endsWith(".docx");
+      const isValid = isPdf || isDocx;
+      console.log(`File "${file.name}" validation: isPdf=${isPdf}, isDocx=${isDocx}, isValid=${isValid}`);
+      return isValid;
+    });
+
+    if (validFiles.length === 0) {
+      console.warn("No valid files found. Only PDF and DOCX files are accepted.");
+      return [];
+    }
 
     const uploadingFiles: UploadingFile[] = validFiles.map((file) => ({
       id: generateId(),
@@ -59,9 +67,10 @@ export function useResumeUpload(jdText?: string) {
       name: file.name,
       size: formatFileSize(file.size),
       progress: 0,
-      status: "queued",
+      status: "queued" as const,
     }));
 
+    console.log("Adding files to queue:", uploadingFiles.map(f => f.name));
     setFiles((prev) => [...prev, ...uploadingFiles]);
     return uploadingFiles;
   }, []);
