@@ -4,7 +4,8 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Mail, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Mail, Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,10 +13,63 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const validateForm = () => {
+    const newErrors: { email?: string; password?: string } = {};
+
+    if (!email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/dashboard");
+    setErrors({});
+
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+
+    // Simulate authentication delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Demo login - accept any valid email/password
+    if (email && password.length >= 6) {
+      toast({
+        title: isSignUp ? "Account Created!" : "Welcome Back!",
+        description: "Redirecting to dashboard...",
+      });
+      navigate("/dashboard");
+    } else {
+      setErrors({ general: "Invalid credentials. Please try again." });
+    }
+
+    setIsLoading(false);
+  };
+
+  const handleSocialLogin = (provider: string) => {
+    setIsLoading(true);
+    toast({
+      title: `Signing in with ${provider}`,
+      description: "Redirecting...",
+    });
+    // Simulate social login
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 1000);
   };
 
   return (
@@ -39,7 +93,10 @@ export default function Login() {
             {/* Tabs */}
             <div className="flex bg-muted rounded-lg p-1">
               <button
-                onClick={() => setIsSignUp(false)}
+                onClick={() => {
+                  setIsSignUp(false);
+                  setErrors({});
+                }}
                 className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all ${
                   !isSignUp ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
                 }`}
@@ -47,7 +104,10 @@ export default function Login() {
                 Sign In
               </button>
               <button
-                onClick={() => setIsSignUp(true)}
+                onClick={() => {
+                  setIsSignUp(true);
+                  setErrors({});
+                }}
                 className={`flex-1 py-2.5 text-sm font-medium rounded-md transition-all ${
                   isSignUp ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
                 }`}
@@ -67,6 +127,14 @@ export default function Login() {
               </p>
             </div>
 
+            {/* General Error */}
+            {errors.general && (
+              <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive text-sm">
+                <AlertCircle className="h-4 w-4" />
+                {errors.general}
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
@@ -76,11 +144,20 @@ export default function Login() {
                     type="email"
                     placeholder="name@company.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pr-10"
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                    }}
+                    className={`pr-10 ${errors.email ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   />
                   <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 </div>
+                {errors.email && (
+                  <p className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.email}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -98,8 +175,11 @@ export default function Login() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pr-10"
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                    }}
+                    className={`pr-10 ${errors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   />
                   <button
                     type="button"
@@ -109,10 +189,23 @@ export default function Login() {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {errors.password && (
+                  <p className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.password}
+                  </p>
+                )}
               </div>
 
-              <Button type="submit" className="w-full btn-gradient h-11">
-                {isSignUp ? "Create Account" : "Sign In"}
+              <Button type="submit" className="w-full btn-gradient h-11" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {isSignUp ? "Creating Account..." : "Signing In..."}
+                  </>
+                ) : (
+                  isSignUp ? "Create Account" : "Sign In"
+                )}
               </Button>
             </form>
 
@@ -126,7 +219,12 @@ export default function Login() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" className="h-11">
+              <Button
+                variant="outline"
+                className="h-11"
+                onClick={() => handleSocialLogin("Google")}
+                disabled={isLoading}
+              >
                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
@@ -147,7 +245,12 @@ export default function Login() {
                 </svg>
                 Google
               </Button>
-              <Button variant="outline" className="h-11">
+              <Button
+                variant="outline"
+                className="h-11"
+                onClick={() => handleSocialLogin("LinkedIn")}
+                disabled={isLoading}
+              >
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
                 </svg>
@@ -158,7 +261,10 @@ export default function Login() {
             <p className="text-center text-sm text-muted-foreground">
               {isSignUp ? "Already have an account? " : "Don't have an account? "}
               <button
-                onClick={() => setIsSignUp(!isSignUp)}
+                onClick={() => {
+                  setIsSignUp(!isSignUp);
+                  setErrors({});
+                }}
                 className="text-primary hover:underline font-medium"
               >
                 {isSignUp ? "Sign in" : "Create account"}

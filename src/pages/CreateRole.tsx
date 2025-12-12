@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,13 +26,19 @@ import {
   ChevronDown,
   X,
   Check,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { defaultWeights, type PriorityWeights } from "@/lib/mockData";
 import { toast } from "@/hooks/use-toast";
+import { useApp } from "@/contexts/AppContext";
 
 export default function CreateRole() {
   const navigate = useNavigate();
+  const { addJob, setActiveJobJd } = useApp();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [jobTitle, setJobTitle] = useState("");
   const [department, setDepartment] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
@@ -45,6 +51,8 @@ export default function CreateRole() {
   const [showSalary, setShowSalary] = useState(false);
   const [weightsOpen, setWeightsOpen] = useState(true);
   const [weights, setWeights] = useState<PriorityWeights>(defaultWeights);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importedFileName, setImportedFileName] = useState<string | null>(null);
 
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
 
@@ -79,7 +87,106 @@ export default function CreateRole() {
     setSkills(skills.filter((s) => s !== skill));
   };
 
+  const extractTextFromFile = useCallback(async (file: File): Promise<string> => {
+    // For PDF files
+    if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8Array);
+      
+      // Try to extract readable text
+      const matches = text.match(/\(([^)]+)\)/g);
+      if (matches) {
+        const extracted = matches
+          .map((m) => m.slice(1, -1))
+          .filter((s) => s.length > 2 && /[a-zA-Z]/.test(s))
+          .join(" ");
+        if (extracted.length > 50) return extracted;
+      }
+      
+      return `[PDF imported from ${file.name}]\n\nNote: For best text extraction, please paste the JD content manually or use a text file. PDF text extraction in browser is limited.`;
+    }
+
+    // For DOCX files
+    if (file.name.toLowerCase().endsWith(".docx")) {
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8Array);
+      
+      // Try to extract text from XML
+      const matches = text.match(/<w:t[^>]*>(.*?)<\/w:t>/g);
+      if (matches) {
+        return matches
+          .map((m) => m.replace(/<w:t[^>]*>|<\/w:t>/g, ""))
+          .join(" ")
+          .replace(/\s+/g, " ")
+          .trim();
+      }
+      
+      return `[DOCX imported from ${file.name}]`;
+    }
+
+    // For text files
+    return await file.text();
+  }, []);
+
+  const handleImportJd = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = [".pdf", ".docx", ".txt"];
+    const isValid = validTypes.some((ext) => file.name.toLowerCase().endsWith(ext));
+
+    if (!isValid) {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a PDF, DOCX, or TXT file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsImporting(true);
+    try {
+      const text = await extractTextFromFile(file);
+      setDescription(text);
+      setImportedFileName(file.name);
+      toast({
+        title: "JD Imported",
+        description: `Content from "${file.name}" has been added to the description.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Import Failed",
+        description: "Could not extract text from the file. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsImporting(false);
+      e.target.value = "";
+    }
+  }, [extractTextFromFile]);
+
   const handleSubmit = () => {
+    const newJob = addJob({
+      title: jobTitle || "New Role",
+      location: locationType === "Remote" ? "Remote" : "TBD",
+      locationType: locationType as "Remote" | "Hybrid" | "On-site",
+      status: "Active",
+      department: department || "General",
+      newCount: 0,
+      shortlistCount: 0,
+      rejectedCount: 0,
+      hasJD: !!description,
+    });
+
+    if (description) {
+      setActiveJobJd({
+        fileName: importedFileName || `${jobTitle || "Role"} JD.txt`,
+        content: description,
+      });
+    }
+
     toast({
       title: "Role Created!",
       description: `${jobTitle || "New Role"} has been created successfully.`,
@@ -105,10 +212,39 @@ export default function CreateRole() {
             Define the role to start matching candidates, or import an existing description to get started faster.
           </p>
         </div>
-        <Button variant="outline" className="gap-2">
-          <FileText className="h-4 w-4" />
-          Import JD from PDF
-        </Button>
+        <div className="flex items-center gap-2">
+          {importedFileName && (
+            <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+              <Check className="h-3 w-3 mr-1" />
+              {importedFileName}
+            </Badge>
+          )}
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isImporting}
+          >
+            {isImporting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Importing...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4" />
+                Import JD from PDF
+              </>
+            )}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,.txt"
+            className="hidden"
+            onChange={handleImportJd}
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
