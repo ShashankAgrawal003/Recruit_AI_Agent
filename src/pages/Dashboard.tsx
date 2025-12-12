@@ -9,9 +9,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, MapPin, Globe, FileText, MoreHorizontal } from "lucide-react";
-import { mockJobs, type Job } from "@/lib/mockData";
+import { Plus, Search, MapPin, Globe, FileText, MoreHorizontal, Briefcase, Users, UserCheck, Calendar, Award } from "lucide-react";
+import { useApp } from "@/contexts/AppContext";
 import { cn } from "@/lib/utils";
+import type { Job } from "@/lib/mockData";
+
+function KpiCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
+  return (
+    <div className="card-elevated p-4 flex items-center gap-4">
+      <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center", color)}>
+        <Icon className="h-6 w-6" />
+      </div>
+      <div>
+        <p className="text-2xl font-bold text-foreground">{value}</p>
+        <p className="text-sm text-muted-foreground">{label}</p>
+      </div>
+    </div>
+  );
+}
 
 function JobCard({ job }: { job: Job }) {
   const statusClass = {
@@ -107,11 +122,12 @@ function CreateJobCard() {
 }
 
 export default function Dashboard() {
+  const { jobs, kpis } = useApp();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
 
-  const filteredJobs = mockJobs.filter((job) => {
+  const filteredJobs = jobs.filter((job) => {
     const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || job.status === statusFilter;
     const matchesLocation = locationFilter === "all" || job.locationType === locationFilter;
@@ -120,7 +136,7 @@ export default function Dashboard() {
 
   return (
     <div className="px-6 py-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Open Roles</h1>
           <p className="text-muted-foreground mt-1">
@@ -133,6 +149,15 @@ export default function Dashboard() {
             Create New Role
           </Link>
         </Button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+        <KpiCard icon={Briefcase} label="Active Roles" value={kpis.activeRoles} color="bg-primary/10 text-primary" />
+        <KpiCard icon={Users} label="Total Applicants" value={kpis.totalApplicants} color="bg-blue-500/10 text-blue-500" />
+        <KpiCard icon={UserCheck} label="Shortlisted" value={kpis.shortlisted} color="bg-success/10 text-success" />
+        <KpiCard icon={Calendar} label="Interview Scheduled" value={kpis.interviewScheduled} color="bg-warning/10 text-warning" />
+        <KpiCard icon={Award} label="Selected" value={kpis.selected} color="bg-purple-500/10 text-purple-500" />
       </div>
 
       {/* Filters */}
