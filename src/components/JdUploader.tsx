@@ -20,10 +20,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import * as pdfjsLib from "pdfjs-dist";
-
-// Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface JdUploaderProps {
   fileName: string | null;
@@ -46,35 +42,47 @@ export function JdUploader({
   const [editContent, setEditContent] = useState(content || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Extract text from PDF using pdf.js
+  // Basic text extraction from PDF (simplified - looks for readable text patterns)
   const extractPdfText = useCallback(async (arrayBuffer: ArrayBuffer): Promise<string> => {
     try {
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let fullText = "";
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8Array);
       
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(" ");
-        fullText += pageText + "\n\n";
+      // Try to extract text between BT and ET markers (PDF text objects)
+      const textMatches: string[] = [];
+      const regex = /\((.*?)\)/g;
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        const extracted = match[1];
+        // Filter for readable text (has letters)
+        if (/[a-zA-Z]{2,}/.test(extracted)) {
+          textMatches.push(extracted);
+        }
       }
       
-      return fullText.trim();
-    } catch (error) {
-      console.error("PDF extraction error:", error);
+      if (textMatches.length > 10) {
+        return textMatches.join(" ").replace(/\s+/g, " ").trim();
+      }
+
+      // Fallback: try to find any readable sequences
+      const readableText = text.match(/[A-Za-z][A-Za-z0-9\s.,;:'"!?()-]{20,}/g);
+      if (readableText && readableText.length > 0) {
+        return readableText.join(" ").replace(/\s+/g, " ").trim();
+      }
+
+      return "";
+    } catch {
       return "";
     }
   }, []);
 
-  // Extract text from DOCX (basic XML parsing)
+  // Basic text extraction from DOCX
   const extractDocxText = useCallback(async (arrayBuffer: ArrayBuffer): Promise<string> => {
     try {
       const uint8Array = new Uint8Array(arrayBuffer);
       const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8Array);
       
-      // Try to extract text content from XML
+      // Extract text from XML tags
       const matches = text.match(/<w:t[^>]*>(.*?)<\/w:t>/g);
       if (matches && matches.length > 0) {
         return matches
@@ -85,8 +93,7 @@ export function JdUploader({
       }
 
       return "";
-    } catch (error) {
-      console.error("DOCX extraction error:", error);
+    } catch {
       return "";
     }
   }, []);
@@ -96,14 +103,14 @@ export function JdUploader({
     
     if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
       const text = await extractPdfText(arrayBuffer);
-      if (text) return text;
-      return `[Could not extract text from ${file.name}. Please paste the JD content manually.]`;
+      if (text && text.length > 50) return text;
+      return `[PDF detected: ${file.name}]\n\nNote: For complex PDFs, please paste the JD content directly into the edit field after clicking "Edit".`;
     }
 
     if (file.name.toLowerCase().endsWith(".docx")) {
       const text = await extractDocxText(arrayBuffer);
-      if (text) return text;
-      return `[Could not extract text from ${file.name}. Please paste the JD content manually.]`;
+      if (text && text.length > 50) return text;
+      return `[DOCX detected: ${file.name}]\n\nNote: For best results, please paste the JD content directly into the edit field after clicking "Edit".`;
     }
 
     // For text files
@@ -139,24 +146,26 @@ export function JdUploader({
       setIsUploading(true);
       try {
         const text = await extractTextFromFile(file);
-        if (!text || text.includes("[Could not extract")) {
-          toast({
-            title: "Text extraction limited",
-            description: "You can edit the extracted text or paste manually.",
-            variant: "default",
-          });
-        }
         onJdUploaded(file.name, text);
         setEditContent(text);
-        toast({
-          title: "JD Imported Successfully",
-          description: `${file.name} has been imported.`,
-        });
+        
+        if (text.includes("[PDF detected:") || text.includes("[DOCX detected:")) {
+          toast({
+            title: "File imported",
+            description: "Click 'Edit' to paste or modify the JD content.",
+            variant: "default",
+          });
+        } else {
+          toast({
+            title: "JD Imported Successfully",
+            description: `${file.name} has been imported.`,
+          });
+        }
       } catch (error) {
         console.error("File extraction error:", error);
         toast({
           title: "Import Failed",
-          description: "Could not extract text from the file. Please try again.",
+          description: "Could not process the file. Please try again.",
           variant: "destructive",
         });
       } finally {
