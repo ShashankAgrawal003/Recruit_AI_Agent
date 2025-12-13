@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +25,8 @@ import { mockCandidates, type Candidate } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { useResumeUpload } from "@/hooks/useResumeUpload";
 import { ResumeUploader } from "@/components/ResumeUploader";
+import { JdUploader } from "@/components/JdUploader";
+import { useApp } from "@/contexts/AppContext";
 
 function ScoreBar({ score, level }: { score: number; level: string }) {
   const colorClass = {
@@ -72,16 +74,44 @@ function StatusBadge({ status }: { status: Candidate["status"] }) {
   return <span className={cn("status-badge", styles)}>{status}</span>;
 }
 
+// Default JD text for roles that have JD pre-filled
+const DEFAULT_JD_TEXT = `We are looking for a Senior React Engineer with 5+ years of experience in React, TypeScript, and modern frontend development. Experience with Node.js, GraphQL, and cloud services is preferred.`;
+
 export default function Candidates() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { getJobById, activeJobJd, setActiveJobJd } = useApp();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("score");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
   
-  // JD text for the active job - in a real app this would come from context/API
-  const activeJdText = `We are looking for a Senior React Engineer with 5+ years of experience in React, TypeScript, and modern frontend development. Experience with Node.js, GraphQL, and cloud services is preferred.`;
+  // Get job ID from URL params
+  const jobId = searchParams.get("job");
+  const job = jobId ? getJobById(jobId) : null;
+
+  // Determine if JD is pre-filled (role has existing JD) or needs upload
+  const [localJdFileName, setLocalJdFileName] = useState<string | null>(null);
+  const [localJdContent, setLocalJdContent] = useState<string | null>(null);
   
+  // Check if the job has a pre-filled JD based on mock data
+  // In a real app, this would check the job's JD field
+  const hasPrefilledJd = job && job.status === "Active";
+  
+  useEffect(() => {
+    if (hasPrefilledJd && !localJdContent) {
+      // Pre-fill JD for active roles
+      setLocalJdFileName("Senior_React_Engineer_JD.pdf");
+      setLocalJdContent(DEFAULT_JD_TEXT);
+    }
+  }, [hasPrefilledJd, localJdContent]);
+
+  // Use either pre-filled JD, context JD, or local JD
+  const effectiveJdFileName = activeJobJd?.fileName || localJdFileName;
+  const effectiveJdContent = activeJobJd?.content || localJdContent;
+
+  // Initialize resume upload hook with JD text
   const {
     files,
     isUploading,
@@ -91,7 +121,23 @@ export default function Candidates() {
     uploadFiles,
     retryFile,
     cancelUpload,
-  } = useResumeUpload(activeJdText);
+  } = useResumeUpload(effectiveJdContent || undefined);
+
+  // JD handlers
+  const handleJdUploaded = (fileName: string, content: string) => {
+    setLocalJdFileName(fileName);
+    setLocalJdContent(content);
+    setActiveJobJd({ fileName, content });
+  };
+
+  const handleJdClear = () => {
+    setLocalJdFileName(null);
+    setLocalJdContent(null);
+    setActiveJobJd(null);
+  };
+
+  // Determine if resume upload should be disabled (no JD uploaded for non-prefilled roles)
+  const needsJdUpload = !hasPrefilledJd && !effectiveJdContent;
 
   const filteredCandidates = mockCandidates.filter((c) => {
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -133,29 +179,62 @@ export default function Candidates() {
         </div>
       </div>
 
-      {/* Upload Section with n8n Webhook Integration */}
-      <ResumeUploader
-        files={files}
-        isUploading={isUploading}
-        onFilesSelected={addFiles}
-        onRemoveFile={removeFile}
-        onRetryFile={retryFile}
-        onUpload={uploadFiles}
-        onCancelUpload={cancelUpload}
-        onClearAll={clearAll}
-      />
+      {/* JD Section - Show based on context */}
+      {hasPrefilledJd && effectiveJdFileName ? (
+        // Compact JD display for roles with pre-filled JD
+        <JdUploader
+          fileName={effectiveJdFileName}
+          content={effectiveJdContent}
+          onJdUploaded={handleJdUploaded}
+          onClear={handleJdClear}
+          compact
+        />
+      ) : (
+        // Full JD upload section for roles needing JD
+        <JdUploader
+          fileName={effectiveJdFileName}
+          content={effectiveJdContent}
+          onJdUploaded={handleJdUploaded}
+          onClear={handleJdClear}
+        />
+      )}
 
-      {/* Active JD Banner */}
-      <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Badge className="bg-primary/20 text-primary border-0">ACTIVE JD</Badge>
-          <span className="font-medium">Senior React Engineer</span>
-          <span className="text-sm text-muted-foreground">ID: RE-2024-003</span>
+      {/* Upload Section with n8n Webhook Integration */}
+      {needsJdUpload ? (
+        <div className="card-elevated p-6 mb-6 opacity-60">
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">
+              Please upload a Job Description above before uploading resumes.
+            </p>
+          </div>
         </div>
-        <Button variant="link" className="text-primary gap-1">
-          View Details <ArrowRight className="h-4 w-4" />
-        </Button>
-      </div>
+      ) : (
+        <ResumeUploader
+          files={files}
+          isUploading={isUploading}
+          onFilesSelected={addFiles}
+          onRemoveFile={removeFile}
+          onRetryFile={retryFile}
+          onUpload={uploadFiles}
+          onCancelUpload={cancelUpload}
+          onClearAll={clearAll}
+          disabled={needsJdUpload}
+        />
+      )}
+
+      {/* Active JD Banner - Only show if JD is set */}
+      {effectiveJdFileName && (
+        <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 mb-6 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-primary/20 text-primary border-0">ACTIVE JD</Badge>
+            <span className="font-medium">{job?.title || "Senior React Engineer"}</span>
+            <span className="text-sm text-muted-foreground">ID: {job?.id || "RE-2024-003"}</span>
+          </div>
+          <Button variant="link" className="text-primary gap-1">
+            View Details <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Filters & Actions */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
