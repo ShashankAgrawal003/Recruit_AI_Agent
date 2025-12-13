@@ -7,7 +7,6 @@ import {
   FileText,
   Trash2,
   Check,
-  AlertCircle,
   RefreshCw,
   X,
   Loader2,
@@ -24,6 +23,7 @@ interface ResumeUploaderProps {
   onUpload: () => void;
   onCancelUpload: () => void;
   onClearAll: () => void;
+  disabled?: boolean;
 }
 
 export function ResumeUploader({
@@ -35,29 +35,56 @@ export function ResumeUploader({
   onUpload,
   onCancelUpload,
   onClearAll,
+  disabled = false,
 }: ResumeUploaderProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const singleInputRef = useRef<HTMLInputElement>(null);
   const bulkInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
-      console.log("Drop event:", e.dataTransfer.files.length, "files");
+      if (disabled || isUploading) return;
       if (e.dataTransfer.files.length > 0) {
         onFilesSelected(e.dataTransfer.files);
       }
     },
-    [onFilesSelected]
+    [onFilesSelected, disabled, isUploading]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
   }, []);
 
+  const handleSingleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        // Only take the first file for single upload
+        const singleFile = [e.target.files[0]];
+        onFilesSelected(singleFile);
+      }
+      // Reset input to allow re-selecting same file
+      e.target.value = "";
+    },
+    [onFilesSelected]
+  );
+
+  const handleBulkFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files && e.target.files.length > 0) {
+        onFilesSelected(e.target.files);
+      }
+      // Reset input to allow re-selecting same files
+      e.target.value = "";
+    },
+    [onFilesSelected]
+  );
+
   const queuedCount = files.filter((f) => f.status === "queued").length;
   const errorCount = files.filter((f) => f.status === "error").length;
   const completeCount = files.filter((f) => f.status === "complete").length;
   const uploadingCount = files.filter((f) => f.status === "uploading").length;
+
+  const canUpload = (queuedCount > 0 || errorCount > 0) && !isUploading && !disabled;
 
   return (
     <div className="card-elevated p-6 mb-6">
@@ -75,6 +102,12 @@ export function ResumeUploader({
                 {queuedCount} Queued
               </Badge>
             )}
+            {uploadingCount > 0 && (
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Analyzing...
+              </Badge>
+            )}
             {errorCount > 0 && (
               <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
                 {errorCount} Failed
@@ -89,21 +122,21 @@ export function ResumeUploader({
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
-          className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
-          onClick={() => bulkInputRef.current?.click()}
+          className={cn(
+            "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
+            disabled || isUploading
+              ? "border-muted bg-muted/20 cursor-not-allowed opacity-60"
+              : "border-border hover:border-primary/50 cursor-pointer"
+          )}
         >
+          {/* Hidden file inputs */}
           <input
-            ref={fileInputRef}
+            ref={singleInputRef}
             type="file"
             accept=".pdf,.docx"
             className="hidden"
-            onChange={(e) => {
-              console.log("Single file input change:", e.target.files);
-              if (e.target.files && e.target.files.length > 0) {
-                onFilesSelected(e.target.files);
-                e.target.value = ""; // Reset to allow re-selecting same file
-              }
-            }}
+            onChange={handleSingleFileSelect}
+            disabled={disabled || isUploading}
           />
           <input
             ref={bulkInputRef}
@@ -111,26 +144,31 @@ export function ResumeUploader({
             accept=".pdf,.docx"
             multiple
             className="hidden"
-            onChange={(e) => {
-              console.log("Bulk file input change:", e.target.files);
-              if (e.target.files && e.target.files.length > 0) {
-                onFilesSelected(e.target.files);
-                e.target.value = ""; // Reset to allow re-selecting same files
-              }
-            }}
+            onChange={handleBulkFileSelect}
+            disabled={disabled || isUploading}
           />
 
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-            <Upload className="h-6 w-6 text-primary" />
+            {isUploading ? (
+              <Loader2 className="h-6 w-6 text-primary animate-spin" />
+            ) : (
+              <Upload className="h-6 w-6 text-primary" />
+            )}
           </div>
-          <p className="font-medium text-foreground mb-1">Drag & drop files here</p>
-          <p className="text-sm text-muted-foreground mb-4">or choose an upload option below</p>
+          
+          <p className="font-medium text-foreground mb-1">
+            {isUploading ? "Uploading resumes..." : "Drag & drop files here"}
+          </p>
+          <p className="text-sm text-muted-foreground mb-4">
+            {isUploading ? "Please wait while files are being analyzed" : "or choose an upload option below"}
+          </p>
 
-          <div className="flex gap-3 justify-center" onClick={(e) => e.stopPropagation()}>
+          <div className="flex gap-3 justify-center">
             <Button
               variant="outline"
               className="gap-2"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => singleInputRef.current?.click()}
+              disabled={disabled || isUploading}
             >
               <FileText className="h-4 w-4" />
               Single File
@@ -139,6 +177,7 @@ export function ResumeUploader({
               variant="outline"
               className="gap-2"
               onClick={() => bulkInputRef.current?.click()}
+              disabled={disabled || isUploading}
             >
               <Upload className="h-4 w-4" />
               Bulk Upload
@@ -159,7 +198,7 @@ export function ResumeUploader({
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm text-muted-foreground">
                   {isUploading
-                    ? `Uploading ${uploadingCount} of ${files.length} files...`
+                    ? `Analyzing ${uploadingCount} of ${files.length} files...`
                     : `${files.length} file${files.length !== 1 ? "s" : ""} ready`}
                 </span>
                 <div className="flex gap-2">
@@ -194,12 +233,21 @@ export function ResumeUploader({
                 ))}
               </div>
 
-              {(queuedCount > 0 || errorCount > 0) && !isUploading && (
+              {canUpload && (
                 <Button className="btn-gradient w-full mt-4 gap-2" onClick={onUpload}>
                   <Upload className="h-4 w-4" />
                   Upload to Analyze ({queuedCount + errorCount} file
                   {queuedCount + errorCount !== 1 ? "s" : ""})
                 </Button>
+              )}
+
+              {isUploading && (
+                <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 text-primary text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analyzing resumes with AI...</span>
+                  </div>
+                </div>
               )}
             </>
           )}
@@ -209,7 +257,12 @@ export function ResumeUploader({
       {/* Results Panel */}
       {completeCount > 0 && (
         <div className="mt-6 pt-6 border-t border-border">
-          <h3 className="font-semibold text-foreground mb-4">Analysis Results</h3>
+          <h3 className="font-semibold text-foreground mb-4">
+            Analysis Results
+            <Badge variant="outline" className="ml-2 bg-success/10 text-success border-success/20">
+              {completeCount} Complete
+            </Badge>
+          </h3>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {files
               .filter((f) => f.status === "complete" && f.result)
@@ -250,11 +303,11 @@ function FileItem({
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium truncate">{file.name}</p>
             {file.status === "complete" ? (
-              <p className="text-xs text-success">Analysis Complete</p>
+              <p className="text-xs text-success">Analysis complete</p>
             ) : file.status === "error" ? (
-              <p className="text-xs text-destructive">{file.errorMessage || "Upload failed"}</p>
+              <p className="text-xs text-destructive">{file.errorMessage || "Upload failed — try again"}</p>
             ) : file.status === "uploading" ? (
-              <p className="text-xs text-primary">Uploading... {Math.round(file.progress)}%</p>
+              <p className="text-xs text-primary">Analyzing... {Math.round(file.progress)}%</p>
             ) : (
               <p className="text-xs text-muted-foreground">{file.size}</p>
             )}

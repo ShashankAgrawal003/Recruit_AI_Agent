@@ -17,15 +17,6 @@ export interface AnalysisResult {
   recommendedAction: "Interview" | "Reject" | "Hold";
 }
 
-interface WebhookResponse {
-  results: Array<{
-    filename: string;
-    score: number;
-    summary: string;
-    recommendedAction: "Interview" | "Reject" | "Hold";
-  }>;
-}
-
 const WEBHOOK_URL = "https://shashankagra03.app.n8n.cloud/webhook/133f7e03-39a1-4abd-b04c-47145eda3758";
 
 function formatFileSize(bytes: number): string {
@@ -45,15 +36,12 @@ export function useResumeUpload(jdText?: string) {
 
   const addFiles = useCallback((newFiles: FileList | File[]) => {
     const fileArray = Array.from(newFiles);
-    console.log("addFiles called with:", fileArray.map(f => ({ name: f.name, type: f.type, size: f.size })));
     
     const validFiles = fileArray.filter((file) => {
       const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
       const isDocx = file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || 
                      file.name.toLowerCase().endsWith(".docx");
-      const isValid = isPdf || isDocx;
-      console.log(`File "${file.name}" validation: isPdf=${isPdf}, isDocx=${isDocx}, isValid=${isValid}`);
-      return isValid;
+      return isPdf || isDocx;
     });
 
     if (validFiles.length === 0) {
@@ -70,7 +58,6 @@ export function useResumeUpload(jdText?: string) {
       status: "queued" as const,
     }));
 
-    console.log("Adding files to queue:", uploadingFiles.map(f => f.name));
     setFiles((prev) => [...prev, ...uploadingFiles]);
     return uploadingFiles;
   }, []);
@@ -105,14 +92,12 @@ export function useResumeUpload(jdText?: string) {
       );
 
       try {
+        // Build FormData - multipart/form-data POST
         const formData = new FormData();
-        // Use the actual filename as key for better n8n compatibility
         formData.append("resume_files", uploadFile.file, uploadFile.file.name);
         if (jdText && jdText.trim()) {
           formData.append("jd_text", jdText.trim());
         }
-        
-        console.log("Uploading file:", uploadFile.file.name, "Size:", uploadFile.file.size);
 
         // Simulate progress updates
         const progressInterval = setInterval(() => {
@@ -125,8 +110,6 @@ export function useResumeUpload(jdText?: string) {
           );
         }, 200);
 
-        console.log("Sending request to webhook:", WEBHOOK_URL);
-        
         const response = await fetch(WEBHOOK_URL, {
           method: "POST",
           body: formData,
@@ -134,8 +117,6 @@ export function useResumeUpload(jdText?: string) {
         });
 
         clearInterval(progressInterval);
-        
-        console.log("Response status:", response.status, response.statusText);
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -144,7 +125,6 @@ export function useResumeUpload(jdText?: string) {
         }
 
         const data = await response.json();
-        console.log("Webhook response:", data);
         
         // Handle different response formats from n8n
         const result = data.results?.[0] || data.result || data || {
@@ -161,9 +141,9 @@ export function useResumeUpload(jdText?: string) {
                   status: "complete",
                   progress: 100,
                   result: {
-                    score: result.score,
-                    summary: result.summary,
-                    recommendedAction: result.recommendedAction,
+                    score: result.score ?? 0,
+                    summary: result.summary ?? "No summary provided",
+                    recommendedAction: result.recommendedAction ?? "Hold",
                   },
                 }
               : f
