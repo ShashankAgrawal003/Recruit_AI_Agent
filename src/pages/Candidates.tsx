@@ -95,9 +95,8 @@ export default function Candidates() {
   const [localJdFileName, setLocalJdFileName] = useState<string | null>(null);
   const [localJdContent, setLocalJdContent] = useState<string | null>(null);
   
-  // Check if the job has a pre-filled JD based on mock data
-  // In a real app, this would check the job's JD field
-  const hasPrefilledJd = job && job.status === "Active";
+  // Check if the job has a pre-filled JD based on the hasJD property
+  const hasPrefilledJd = job?.hasJD === true;
   
   useEffect(() => {
     if (hasPrefilledJd && !localJdContent) {
@@ -180,7 +179,7 @@ export default function Candidates() {
       </div>
 
       {/* JD Section - Show based on context */}
-      {hasPrefilledJd && effectiveJdFileName ? (
+      {hasPrefilledJd ? (
         // Compact JD display for roles with pre-filled JD
         <JdUploader
           fileName={effectiveJdFileName}
@@ -190,37 +189,50 @@ export default function Candidates() {
           compact
         />
       ) : (
-        // Full JD upload section for roles needing JD
-        <JdUploader
-          fileName={effectiveJdFileName}
-          content={effectiveJdContent}
-          onJdUploaded={handleJdUploaded}
-          onClear={handleJdClear}
-        />
+        // Full JD upload section for roles needing JD upload
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="font-semibold text-foreground">Step 1: Upload Job Description</h2>
+            {!effectiveJdContent && (
+              <span className="text-xs text-warning">(Required before uploading resumes)</span>
+            )}
+          </div>
+          <JdUploader
+            fileName={effectiveJdFileName}
+            content={effectiveJdContent}
+            onJdUploaded={handleJdUploaded}
+            onClear={handleJdClear}
+          />
+        </div>
       )}
 
       {/* Upload Section with n8n Webhook Integration */}
-      {needsJdUpload ? (
-        <div className="card-elevated p-6 mb-6 opacity-60">
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">
-              Please upload a Job Description above before uploading resumes.
-            </p>
+      <div className="mb-6">
+        {!hasPrefilledJd && effectiveJdContent && (
+          <h2 className="font-semibold text-foreground mb-3">Step 2: Upload Resumes</h2>
+        )}
+        {needsJdUpload ? (
+          <div className="card-elevated p-6 opacity-60">
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">
+                Please upload a Job Description above before uploading resumes.
+              </p>
+            </div>
           </div>
-        </div>
-      ) : (
-        <ResumeUploader
-          files={files}
-          isUploading={isUploading}
-          onFilesSelected={addFiles}
-          onRemoveFile={removeFile}
-          onRetryFile={retryFile}
-          onUpload={uploadFiles}
-          onCancelUpload={cancelUpload}
-          onClearAll={clearAll}
-          disabled={needsJdUpload}
-        />
-      )}
+        ) : (
+          <ResumeUploader
+            files={files}
+            isUploading={isUploading}
+            onFilesSelected={addFiles}
+            onRemoveFile={removeFile}
+            onRetryFile={retryFile}
+            onUpload={uploadFiles}
+            onCancelUpload={cancelUpload}
+            onClearAll={clearAll}
+            disabled={needsJdUpload}
+          />
+        )}
+      </div>
 
       {/* Active JD Banner - Only show if JD is set */}
       {effectiveJdFileName && (
