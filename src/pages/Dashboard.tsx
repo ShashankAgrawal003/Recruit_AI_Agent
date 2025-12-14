@@ -9,6 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Plus, Search, MapPin, Globe, FileText, MoreHorizontal, Briefcase, Users, UserCheck, Calendar, Award } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { cn } from "@/lib/utils";
@@ -38,8 +44,22 @@ function JobCard({ job }: { job: Job }) {
   return (
     <div className="card-elevated p-5 hover:shadow-elevated transition-all animate-fade-in">
       <div className="flex items-start justify-between mb-3">
-        <div>
-          <h3 className="font-semibold text-foreground">{job.title}</h3>
+        <div className="flex-1 min-w-0 mr-3">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <h3 className="font-semibold text-foreground truncate max-w-[200px]">
+                  {job.title}
+                </h3>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{job.title}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {!job.hasJD && (
+            <p className="text-xs text-muted-foreground mt-0.5">Upload JD to start matching</p>
+          )}
           <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
             {job.locationType === 'Remote' ? (
               <Globe className="h-3.5 w-3.5" />
