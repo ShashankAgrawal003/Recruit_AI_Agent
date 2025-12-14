@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,12 @@ import {
   RefreshCw,
   X,
   Loader2,
+  Cloud,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UploadingFile } from "@/hooks/useResumeUpload";
+import { FetchResumeModal, type FetchedResume } from "./FetchResumeModal";
+import { toast } from "@/hooks/use-toast";
 
 interface ResumeUploaderProps {
   files: UploadingFile[];
@@ -39,6 +42,28 @@ export function ResumeUploader({
 }: ResumeUploaderProps) {
   const singleInputRef = useRef<HTMLInputElement>(null);
   const bulkInputRef = useRef<HTMLInputElement>(null);
+  const [fetchModalOpen, setFetchModalOpen] = useState(false);
+
+  const handleFetchedResumes = useCallback(
+    (fetchedResumes: FetchedResume[]) => {
+      // Convert fetched resumes to mock File objects for the upload queue
+      const mockFiles: File[] = fetchedResumes.map((resume) => {
+        // Create a mock file from the fetched resume data
+        const blob = new Blob([""], { type: "application/pdf" });
+        const file = new File([blob], resume.name, { type: "application/pdf" });
+        return file;
+      });
+
+      if (mockFiles.length > 0) {
+        onFilesSelected(mockFiles);
+        toast({
+          title: "Resumes added to queue",
+          description: `${mockFiles.length} resume${mockFiles.length !== 1 ? "s" : ""} added from external source.`,
+        });
+      }
+    },
+    [onFilesSelected]
+  );
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -163,7 +188,7 @@ export function ResumeUploader({
             {isUploading ? "Please wait while files are being analyzed" : "or choose an upload option below"}
           </p>
 
-          <div className="flex gap-3 justify-center">
+          <div className="flex gap-3 justify-center flex-wrap">
             <Button
               variant="outline"
               className="gap-2"
@@ -182,9 +207,25 @@ export function ResumeUploader({
               <Upload className="h-4 w-4" />
               Bulk Upload
             </Button>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => setFetchModalOpen(true)}
+              disabled={disabled || isUploading}
+            >
+              <Cloud className="h-4 w-4" />
+              Fetch Resume from…
+            </Button>
           </div>
 
           <p className="text-xs text-muted-foreground mt-4">Supports PDF, DOCX (Max 10MB)</p>
+
+          {/* Fetch Resume Modal */}
+          <FetchResumeModal
+            open={fetchModalOpen}
+            onOpenChange={setFetchModalOpen}
+            onResumesConfirmed={handleFetchedResumes}
+          />
         </div>
 
         {/* Upload Progress & Files List */}
