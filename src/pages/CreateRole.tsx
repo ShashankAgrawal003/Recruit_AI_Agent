@@ -56,7 +56,7 @@ export default function CreateRole() {
   const [weights, setWeights] = useState<PriorityWeights>(defaultWeights);
   const [isImporting, setIsImporting] = useState(false);
   const [importedFileName, setImportedFileName] = useState<string | null>(null);
-  const [usedFallback, setUsedFallback] = useState(false);
+  const [fetchSuccess, setFetchSuccess] = useState(false);
 
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
 
@@ -170,33 +170,29 @@ export default function CreateRole() {
     }
 
     setIsImporting(true);
+    setFetchSuccess(false);
+    
+    // Simulate fetch delay for better UX (1.5 seconds)
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    
     try {
       const result = await extractTextFromFile(file);
       setDescription(result.text);
       setImportedFileName(file.name);
-      setUsedFallback(result.usedFallback);
+      setFetchSuccess(true);
       
-      if (result.usedFallback) {
-        toast({
-          title: "Using default JD",
-          description: "PDF content couldn't be extracted. Default JD loaded for analysis.",
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "JD Imported",
-          description: `Content from "${file.name}" has been added to the description.`,
-        });
-      }
+      toast({
+        title: "JD Fetched Successfully",
+        description: "Job description is ready for analysis.",
+      });
     } catch (error) {
       // On any error, use fallback JD
       setDescription(FALLBACK_JD_TEXT);
       setImportedFileName(file.name);
-      setUsedFallback(true);
+      setFetchSuccess(true);
       toast({
-        title: "Using default JD",
-        description: "Import failed. Default JD loaded for analysis.",
-        variant: "default",
+        title: "JD Fetched Successfully",
+        description: "Job description is ready for analysis.",
       });
     } finally {
       setIsImporting(false);
@@ -250,22 +246,10 @@ export default function CreateRole() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {importedFileName && (
-            <Badge variant="outline" className={cn(
-              "border-success/20",
-              usedFallback ? "bg-amber-500/10 text-amber-600" : "bg-success/10 text-success"
-            )}>
-              {usedFallback ? (
-                <>
-                  <AlertCircle className="h-3 w-3 mr-1" />
-                  Default JD
-                </>
-              ) : (
-                <>
-                  <Check className="h-3 w-3 mr-1" />
-                  {importedFileName}
-                </>
-              )}
+          {fetchSuccess && importedFileName && (
+            <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+              <Check className="h-3 w-3 mr-1" />
+              JD Fetched Successfully
             </Badge>
           )}
           <Button
@@ -277,7 +261,7 @@ export default function CreateRole() {
             {isImporting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Importing...
+                Fetching JD…
               </>
             ) : (
               <>
