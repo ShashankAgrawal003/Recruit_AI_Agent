@@ -11,10 +11,24 @@ export interface UploadingFile {
   result?: AnalysisResult;
 }
 
+export interface SkillGapAnalysis {
+  skill: string;
+  priority: "Essential" | "Preferred" | "Nice-to-have";
+  status: "Fully Met" | "Partial Match" | "Missing";
+  note: string;
+}
+
+export interface EmailDrafts {
+  rejection_message: string;
+  interview_message?: string;
+}
+
 export interface AnalysisResult {
   score: number;
   summary: string;
   recommendedAction: "Interview" | "Reject" | "Hold";
+  skill_gap_analysis?: SkillGapAnalysis[];
+  emailDrafts?: EmailDrafts;
 }
 
 const WEBHOOK_URL = "https://shashankagra03.app.n8n.cloud/webhook/133f7e03-39a1-4abd-b04c-47145eda3758";
@@ -92,12 +106,17 @@ export function useResumeUpload(jdText?: string) {
       );
 
       try {
-        // Build FormData - multipart/form-data POST
+        // Build FormData with unique keys for each file
         const formData = new FormData();
-        formData.append("resume_files", uploadFile.file, uploadFile.file.name);
+        
+        // Attach JD text if present
         if (jdText && jdText.trim()) {
           formData.append("jd_text", jdText.trim());
         }
+        
+        // Attach resume file with unique key (resume_file_0, resume_file_1, etc.)
+        const fileIndex = queuedFiles.indexOf(uploadFile);
+        formData.append(`resume_file_${fileIndex}`, uploadFile.file, uploadFile.file.name);
 
         // Simulate progress updates
         const progressInterval = setInterval(() => {
@@ -130,8 +149,11 @@ export function useResumeUpload(jdText?: string) {
         const result = data.results?.[0] || data.result || data || {
           score: 0,
           summary: "No analysis returned from server",
-          recommendedAction: "Hold" as const,
+          recommended_action: "Hold",
         };
+
+        // Map recommended_action to recommendedAction (normalize field name)
+        const recommendedAction = result.recommendedAction || result.recommended_action || "Hold";
 
         setFiles((prev) =>
           prev.map((f) =>
@@ -143,7 +165,11 @@ export function useResumeUpload(jdText?: string) {
                   result: {
                     score: result.score ?? 0,
                     summary: result.summary ?? "No summary provided",
-                    recommendedAction: result.recommendedAction ?? "Hold",
+                    recommendedAction: recommendedAction as "Interview" | "Reject" | "Hold",
+                    skill_gap_analysis: result.skill_gap_analysis || [],
+                    emailDrafts: result.emailDrafts || {
+                      rejection_message: `Dear Candidate,\n\nThank you for your interest in this position. After careful consideration, we have decided to move forward with other candidates whose qualifications more closely match our current needs.\n\nWe appreciate the time you invested in applying and wish you success in your job search.\n\nBest regards,\nRecruit-AI Team`,
+                    },
                   },
                 }
               : f

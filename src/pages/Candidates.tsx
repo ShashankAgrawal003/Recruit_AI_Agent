@@ -63,15 +63,23 @@ function ScoreBar({ score, level }: { score: number; level: string }) {
   );
 }
 
-function StatusBadge({ status }: { status: Candidate["status"] }) {
-  const styles = {
+function StatusBadge({ status, recommendedAction }: { status: Candidate["status"]; recommendedAction?: Candidate["recommendedAction"] }) {
+  // Use recommendedAction if available for styling, otherwise fall back to status
+  const displayStatus = recommendedAction || status;
+  
+  const styles: Record<string, string> = {
     "Pending Review": "status-pending",
     Shortlisted: "status-shortlisted",
     Rejected: "status-rejected",
     Hold: "status-paused",
-  }[status];
+    Interview: "status-shortlisted",
+    Selected: "status-shortlisted",
+    Reject: "status-rejected",
+  };
 
-  return <span className={cn("status-badge", styles)}>{status}</span>;
+  const displayText = recommendedAction || status;
+
+  return <span className={cn("status-badge", styles[displayStatus] || "status-pending")}>{displayText}</span>;
 }
 
 // Default JD text for roles that have JD pre-filled
@@ -351,7 +359,7 @@ export default function Candidates() {
                   </p>
                 </td>
                 <td className="px-4 py-4">
-                  <StatusBadge status={candidate.status} />
+                  <StatusBadge status={candidate.status} recommendedAction={candidate.recommendedAction} />
                 </td>
                 <td className="px-4 py-4">
                   <div className="flex items-center justify-end gap-2">

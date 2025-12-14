@@ -60,13 +60,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return candidates.find((c) => c.id === id);
   }, [candidates]);
 
-  // Calculate KPIs
+  // Calculate KPIs based on actual data
   const kpis = {
-    activeRoles: jobs.filter((j) => j.status === "Active").length,
+    // Active roles: count roles with hasJD=true or status="Active"
+    activeRoles: jobs.filter((j) => j.hasJD || j.status === "Active").length,
+    // Total applicants: count all candidates
     totalApplicants: candidates.length,
-    shortlisted: candidates.filter((c) => c.status === "Shortlisted").length,
-    interviewScheduled: 3, // Mock value
-    selected: 1, // Mock value
+    // Shortlisted: candidates with recommendedAction="Interview" or status includes interview-related
+    shortlisted: candidates.filter((c) => 
+      c.recommendedAction === "Interview" || 
+      c.status === "Shortlisted" || 
+      c.status === "Interview"
+    ).length,
+    // Interview scheduled: candidates with an interviewDate set
+    interviewScheduled: candidates.filter((c) => c.interviewDate).length,
+    // Selected: candidates with status="Selected"
+    selected: candidates.filter((c) => c.status === "Selected").length,
   };
 
   return (
