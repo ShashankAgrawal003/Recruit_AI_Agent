@@ -29,8 +29,6 @@ import { ResumeUploader } from "@/components/ResumeUploader";
 import { JdUploader } from "@/components/JdUploader";
 import { useApp } from "@/contexts/AppContext";
 import { toast } from "@/hooks/use-toast";
-import { calculateOverallFit } from "@/lib/parseResumeText";
-import { OverallFitBadge } from "@/components/OverallFitBadge";
 
 function ScoreBar({ score, level }: { score: number; level: string }) {
   const colorClass = {
@@ -232,9 +230,31 @@ export default function Candidates() {
   const filteredCandidates = sortedCandidates.filter((c) => {
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.role.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "Shortlisted" && (c.status === "Shortlisted" || c.recommendedAction === "Interview")) ||
-      (statusFilter === "Pending" && c.status === "Pending Review");
+    
+    let matchesStatus = false;
+    switch (statusFilter) {
+      case "all":
+        matchesStatus = true;
+        break;
+      case "Shortlisted":
+        matchesStatus = c.status === "Shortlisted";
+        break;
+      case "Pending":
+        matchesStatus = c.status === "Pending Review";
+        break;
+      case "Interview":
+        matchesStatus = c.status === "Interview";
+        break;
+      case "Rejected":
+        matchesStatus = c.status === "Rejected";
+        break;
+      case "Selected":
+        matchesStatus = c.status === "Selected";
+        break;
+      default:
+        matchesStatus = true;
+    }
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -403,9 +423,6 @@ export default function Candidates() {
                 AI Match
               </th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Overall Fit
-              </th>
-              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 AI Summary
               </th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -438,9 +455,6 @@ export default function Candidates() {
                 </td>
                 <td className="px-4 py-4">
                   <ScoreBar score={candidate.weightedScore} level={candidate.scoreLevel} />
-                </td>
-                <td className="px-4 py-4">
-                  <OverallFitBadge fit={calculateOverallFit(candidate.skillGaps)} />
                 </td>
                 <td className="px-4 py-4 max-w-xs">
                   <p className="text-sm text-muted-foreground line-clamp-2">
