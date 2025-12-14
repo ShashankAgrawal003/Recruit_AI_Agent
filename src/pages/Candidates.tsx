@@ -67,23 +67,24 @@ function ScoreBar({ score, level }: { score: number; level: string }) {
   );
 }
 
-function StatusBadge({ status, recommendedAction }: { status: Candidate["status"]; recommendedAction?: Candidate["recommendedAction"] }) {
-  // Use recommendedAction if available for styling, otherwise fall back to status
-  const displayStatus = recommendedAction || status;
-  
+function StatusBadge({ status }: { status: Candidate["status"] }) {
   const styles: Record<string, string> = {
-    "Pending Review": "status-pending",
-    Shortlisted: "status-shortlisted",
-    Rejected: "status-rejected",
-    Hold: "status-paused",
-    Interview: "status-shortlisted",
-    Selected: "status-shortlisted",
-    Reject: "status-rejected",
+    "Pending Review": "bg-muted text-muted-foreground",
+    Shortlisted: "bg-primary/10 text-primary",
+    Rejected: "bg-destructive/10 text-destructive",
+    Hold: "bg-warning/10 text-warning",
+    Interview: "bg-success/10 text-success font-semibold",
+    Selected: "bg-success/10 text-success",
   };
 
-  const displayText = recommendedAction || status;
-
-  return <span className={cn("status-badge", styles[displayStatus] || "status-pending")}>{displayText}</span>;
+  return (
+    <span className={cn(
+      "px-2.5 py-1 rounded-full text-xs font-medium",
+      styles[status] || "bg-muted text-muted-foreground"
+    )}>
+      {status}
+    </span>
+  );
 }
 
 // Default JD text for roles that have JD pre-filled
@@ -447,34 +448,57 @@ export default function Candidates() {
                   </p>
                 </td>
                 <td className="px-4 py-4">
-                  <StatusBadge status={candidate.status} recommendedAction={candidate.recommendedAction} />
+                  <StatusBadge status={candidate.status} />
                 </td>
                 <td className="px-4 py-4">
                   <div className="flex items-center justify-end gap-2">
-                    {candidate.status !== "Rejected" && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                    {/* Reject button - show for Shortlisted, Interview, Selected */}
+                    {(candidate.status === "Shortlisted" || candidate.status === "Interview" || candidate.status === "Selected") && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => updateCandidate(candidate.id, { status: "Rejected" })}
+                        title="Reject candidate"
+                      >
                         <X className="h-4 w-4" />
                       </Button>
                     )}
-                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                    
+                    {/* Eye icon - always visible */}
+                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild title="View details">
                       <Link to={`/candidates/${candidate.id}`}>
                         <Eye className="h-4 w-4" />
                       </Link>
                     </Button>
-                    {candidate.status === "Rejected" ? (
-                      <Button variant="outline" size="sm" className="gap-1">
+                    
+                    {/* Action button based on status */}
+                    {candidate.status === "Pending Review" && (
+                      <Button 
+                        className="btn-gradient h-8 text-xs gap-1"
+                        onClick={() => updateCandidate(candidate.id, { status: "Shortlisted" })}
+                      >
+                        <Check className="h-3 w-3" />
+                        Shortlist
+                      </Button>
+                    )}
+                    
+                    {candidate.status === "Rejected" && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-1"
+                        onClick={() => updateCandidate(candidate.id, { status: "Pending Review" })}
+                      >
                         <Undo2 className="h-3 w-3" />
                         Undo
                       </Button>
-                    ) : candidate.status === "Shortlisted" ? (
-                      <Button variant="outline" size="sm" className="gap-1" disabled>
+                    )}
+                    
+                    {(candidate.status === "Shortlisted" || candidate.status === "Interview" || candidate.status === "Selected") && (
+                      <Button variant="outline" size="sm" className="gap-1 opacity-60 cursor-default" disabled>
                         <Check className="h-3 w-3" />
                         Added
-                      </Button>
-                    ) : (
-                      <Button className="btn-gradient h-8 text-xs gap-1">
-                        <Check className="h-3 w-3" />
-                        Shortlist
                       </Button>
                     )}
                   </div>
