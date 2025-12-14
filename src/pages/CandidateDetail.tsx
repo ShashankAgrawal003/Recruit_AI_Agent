@@ -363,7 +363,6 @@ export default function CandidateDetail() {
                 </div>
               </div>
             </div>
-            </div>
 
             {/* AI Analysis */}
             <div className="card-elevated p-6">
