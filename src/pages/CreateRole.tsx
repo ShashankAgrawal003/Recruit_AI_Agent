@@ -45,7 +45,7 @@ export default function CreateRole() {
   const [jobTitle, setJobTitle] = useState("");
   const [department, setDepartment] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("");
-  const [locationType, setLocationType] = useState("Remote");
+  const [locationType, setLocationType] = useState("Hybrid");
   const [skills, setSkills] = useState<string[]>(["React", "TypeScript"]);
   const [skillInput, setSkillInput] = useState("");
   const [description, setDescription] = useState("");
@@ -203,7 +203,7 @@ export default function CreateRole() {
   const handleSubmit = () => {
     const newJob = addJob({
       title: jobTitle || "New Role",
-      location: locationType === "Remote" ? "Remote" : "TBD",
+      location: "India",
       locationType: locationType as "Remote" | "Hybrid" | "On-site",
       status: "Active",
       department: department || "General",

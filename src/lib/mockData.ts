@@ -80,8 +80,8 @@ export const mockJobs: Job[] = [
   {
     id: '1',
     title: 'Senior Full Stack Engineer',
-    location: 'Remote',
-    locationType: 'Remote',
+    location: 'India',
+    locationType: 'Hybrid',
     status: 'Active',
     department: 'Engineering',
     newCount: 12,
@@ -93,7 +93,7 @@ export const mockJobs: Job[] = [
   {
     id: '2',
     title: 'Product Designer',
-    location: 'New York, NY',
+    location: 'India',
     locationType: 'Hybrid',
     status: 'Active',
     department: 'Design',
@@ -106,8 +106,8 @@ export const mockJobs: Job[] = [
   {
     id: '3',
     title: 'Marketing Lead',
-    location: 'San Francisco',
-    locationType: 'On-site',
+    location: 'India',
+    locationType: 'Hybrid',
     status: 'Paused',
     department: 'Marketing',
     newCount: 0,
@@ -119,8 +119,8 @@ export const mockJobs: Job[] = [
   {
     id: '4',
     title: 'Customer Success Mgr',
-    location: 'Remote',
-    locationType: 'Remote',
+    location: 'India',
+    locationType: 'Hybrid',
     status: 'Active',
     department: 'Customer Success',
     newCount: 3,
@@ -132,7 +132,7 @@ export const mockJobs: Job[] = [
   {
     id: '5',
     title: 'Backend Dev (Go)',
-    location: 'London, UK',
+    location: 'India',
     locationType: 'Hybrid',
     status: 'Draft',
     department: 'Engineering',
