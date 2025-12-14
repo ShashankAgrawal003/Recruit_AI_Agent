@@ -4,54 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Download,
-  MessageCircle,
-  Mail,
-  Phone,
-  MapPin,
-  Linkedin,
-  Calendar,
-  Clock,
-  ChevronDown,
-  ChevronUp,
-  Check,
-  X,
-  AlertTriangle,
-  ArrowLeft,
-  Sparkles,
-  RefreshCw,
-  Send,
-  ExternalLink,
-} from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Download, MessageCircle, Mail, Phone, MapPin, Linkedin, Calendar, Clock, ChevronDown, ChevronUp, Check, X, AlertTriangle, ArrowLeft, Sparkles, RefreshCw, Send, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useApp } from "@/contexts/AppContext";
-
 export default function CandidateDetail() {
-  const { id } = useParams();
+  const {
+    id
+  } = useParams();
   const navigate = useNavigate();
-  const { candidates, updateCandidate } = useApp();
-  const candidate = candidates.find((c) => c.id === id) || candidates[0];
-  
+  const {
+    candidates,
+    updateCandidate
+  } = useApp();
+  const candidate = candidates.find(c => c.id === id) || candidates[0];
   const [skillGapOpen, setSkillGapOpen] = useState(true);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
@@ -60,15 +29,18 @@ export default function CandidateDetail() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successType, setSuccessType] = useState<"interview" | "rejection">("interview");
   const [newNote, setNewNote] = useState("");
-  const [rejectionEmailContent, setRejectionEmailContent] = useState(
-    candidate.emailDrafts?.rejection_message || 
-    `Dear ${candidate.name},\n\nThank you for your interest in this position. After careful consideration, we have decided to move forward with other candidates.\n\nBest regards,\nRecruit-AI Team`
-  );
-  const [scheduleErrors, setScheduleErrors] = useState<{ date?: string; time?: string; email?: string }>({});
-
+  const [rejectionEmailContent, setRejectionEmailContent] = useState(candidate.emailDrafts?.rejection_message || `Dear ${candidate.name},\n\nThank you for your interest in this position. After careful consideration, we have decided to move forward with other candidates.\n\nBest regards,\nRecruit-AI Team`);
+  const [scheduleErrors, setScheduleErrors] = useState<{
+    date?: string;
+    time?: string;
+    email?: string;
+  }>({});
   const validateSchedule = () => {
-    const errors: { date?: string; time?: string; email?: string } = {};
-    
+    const errors: {
+      date?: string;
+      time?: string;
+      email?: string;
+    } = {};
     if (!scheduleDate) {
       errors.date = "Please select a date";
     }
@@ -78,45 +50,35 @@ export default function CandidateDetail() {
     if (!candidate.email) {
       errors.email = "Candidate email is required";
     }
-    
     setScheduleErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
   const handleScheduleInterview = () => {
     if (!validateSchedule()) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-    
     setSuccessType("interview");
     setShowSuccessModal(true);
     toast({
       title: "Interview Scheduled!",
-      description: `Interview invitation sent to ${candidate.name}.`,
+      description: `Interview invitation sent to ${candidate.name}.`
     });
   };
-
   const handleReject = () => {
     setSuccessType("rejection");
     setShowSuccessModal(true);
     toast({
       title: "Rejection Email Sent",
-      description: `${candidate.name} has been notified.`,
+      description: `${candidate.name} has been notified.`
     });
   };
-
-
-  const skillMatchPercent = Math.round(
-    (candidate.skillGaps.filter((s) => s.status === "Fully Met").length / candidate.skillGaps.length) * 100
-  );
-
-  return (
-    <div className="min-h-screen bg-background">
+  const skillMatchPercent = Math.round(candidate.skillGaps.filter(s => s.status === "Fully Met").length / candidate.skillGaps.length * 100);
+  return <div className="min-h-screen bg-background">
       {/* Sub-header */}
       <div className="border-b border-border bg-card px-6 py-3">
         <div className="flex items-center gap-2 text-sm">
@@ -182,9 +144,7 @@ export default function CandidateDetail() {
             <div className="card-elevated p-6">
               <h3 className="font-semibold text-foreground mb-3">Top Skills</h3>
               <div className="flex flex-wrap gap-2">
-                {candidate.skills.map((skill) => (
-                  <Badge key={skill} variant="secondary">{skill}</Badge>
-                ))}
+                {candidate.skills.map(skill => <Badge key={skill} variant="secondary">{skill}</Badge>)}
                 <Badge variant="outline" className="text-muted-foreground">+4 more</Badge>
               </div>
             </div>
@@ -244,33 +204,25 @@ export default function CandidateDetail() {
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div>
                   <label className="text-sm text-muted-foreground mb-1 block">Date *</label>
-                  <Input
-                    type="date"
-                    value={scheduleDate}
-                    onChange={(e) => {
-                      setScheduleDate(e.target.value);
-                      setScheduleErrors((prev) => ({ ...prev, date: undefined }));
-                    }}
-                    className={scheduleErrors.date ? "border-destructive" : ""}
-                  />
-                  {scheduleErrors.date && (
-                    <p className="text-xs text-destructive mt-1">{scheduleErrors.date}</p>
-                  )}
+                  <Input type="date" value={scheduleDate} onChange={e => {
+                  setScheduleDate(e.target.value);
+                  setScheduleErrors(prev => ({
+                    ...prev,
+                    date: undefined
+                  }));
+                }} className={scheduleErrors.date ? "border-destructive" : ""} />
+                  {scheduleErrors.date && <p className="text-xs text-destructive mt-1">{scheduleErrors.date}</p>}
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground mb-1 block">Time *</label>
-                  <Input
-                    type="time"
-                    value={scheduleTime}
-                    onChange={(e) => {
-                      setScheduleTime(e.target.value);
-                      setScheduleErrors((prev) => ({ ...prev, time: undefined }));
-                    }}
-                    className={scheduleErrors.time ? "border-destructive" : ""}
-                  />
-                  {scheduleErrors.time && (
-                    <p className="text-xs text-destructive mt-1">{scheduleErrors.time}</p>
-                  )}
+                  <Input type="time" value={scheduleTime} onChange={e => {
+                  setScheduleTime(e.target.value);
+                  setScheduleErrors(prev => ({
+                    ...prev,
+                    time: undefined
+                  }));
+                }} className={scheduleErrors.time ? "border-destructive" : ""} />
+                  {scheduleErrors.time && <p className="text-xs text-destructive mt-1">{scheduleErrors.time}</p>}
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground mb-1 block">Duration</label>
@@ -293,9 +245,9 @@ export default function CandidateDetail() {
                   <Button variant="link" className="text-primary text-sm p-0">Edit Template</Button>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  <p>"Hi Sarah,</p>
-                  <p className="mt-2">We're impressed with your application and would love to chat. I've scheduled a 45-minute video call for <strong className="text-foreground">Nov 14 at 10:00 AM</strong>. A calendar invite will follow this email.</p>
-                  <p className="mt-2">Best,<br/>Recruit-AI Team"</p>
+                  <p>"Hi <Candidate Name>,</p>
+                  <p className="mt-2">18 Dec at 12:00 AM<strong className="text-foreground">Nov 14 at 10:00 AM</strong>. A calendar invite will follow this email.</p>
+                  <p className="mt-2">Best,<br />Recruit-AI Team"</p>
                 </div>
               </div>
 
@@ -342,12 +294,7 @@ export default function CandidateDetail() {
                   <span className="text-sm font-medium">REJECTION EMAIL (AI-GENERATED)</span>
                   <Badge variant="outline" className="text-xs">From n8n Analysis</Badge>
                 </div>
-                <Textarea
-                  value={rejectionEmailContent}
-                  onChange={(e) => setRejectionEmailContent(e.target.value)}
-                  className="min-h-[120px] text-sm bg-background"
-                  placeholder="Rejection email content..."
-                />
+                <Textarea value={rejectionEmailContent} onChange={e => setRejectionEmailContent(e.target.value)} className="min-h-[120px] text-sm bg-background" placeholder="Rejection email content..." />
               </div>
 
               <div className="flex items-center justify-between">
@@ -375,19 +322,9 @@ export default function CandidateDetail() {
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-muted-foreground">BASE: <strong className="text-foreground">{candidate.baseScore}%</strong></span>
                   <span className="text-muted-foreground">WEIGHTED: <strong className="text-primary">{candidate.weightedScore}%</strong></span>
-                  {candidate.recommendedAction && (
-                    <Badge 
-                      className={cn(
-                        "text-xs",
-                        candidate.recommendedAction === "Interview" && "bg-success/10 text-success border-success/30",
-                        candidate.recommendedAction === "Reject" && "bg-destructive/10 text-destructive border-destructive/30",
-                        candidate.recommendedAction === "Hold" && "bg-warning/10 text-warning border-warning/30"
-                      )}
-                      variant="outline"
-                    >
+                  {candidate.recommendedAction && <Badge className={cn("text-xs", candidate.recommendedAction === "Interview" && "bg-success/10 text-success border-success/30", candidate.recommendedAction === "Reject" && "bg-destructive/10 text-destructive border-destructive/30", candidate.recommendedAction === "Hold" && "bg-warning/10 text-warning border-warning/30")} variant="outline">
                       {candidate.recommendedAction}
-                    </Badge>
-                  )}
+                    </Badge>}
                 </div>
               </div>
 
@@ -455,31 +392,17 @@ export default function CandidateDetail() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {candidate.skillGaps.map((gap, index) => (
-                        <tr key={index}>
+                      {candidate.skillGaps.map((gap, index) => <tr key={index}>
                           <td className="py-3">
                             <div>
                               <span className="font-medium">{gap.skill}</span>
-                              <Badge 
-                                variant="outline" 
-                                className={cn(
-                                  "ml-2 text-xs",
-                                  gap.priority === "Essential" && "border-destructive/50 text-destructive",
-                                  gap.priority === "Preferred" && "border-primary/50 text-primary",
-                                  gap.priority === "Nice-to-have" && "border-muted-foreground"
-                                )}
-                              >
+                              <Badge variant="outline" className={cn("ml-2 text-xs", gap.priority === "Essential" && "border-destructive/50 text-destructive", gap.priority === "Preferred" && "border-primary/50 text-primary", gap.priority === "Nice-to-have" && "border-muted-foreground")}>
                                 {gap.priority}
                               </Badge>
                             </div>
                           </td>
                           <td className="py-3">
-                            <span className={cn(
-                              "flex items-center gap-1 text-sm",
-                              gap.status === "Fully Met" && "text-success",
-                              gap.status === "Partial Match" && "text-warning",
-                              gap.status === "Missing" && "text-destructive"
-                            )}>
+                            <span className={cn("flex items-center gap-1 text-sm", gap.status === "Fully Met" && "text-success", gap.status === "Partial Match" && "text-warning", gap.status === "Missing" && "text-destructive")}>
                               {gap.status === "Fully Met" && <Check className="h-4 w-4" />}
                               {gap.status === "Partial Match" && <AlertTriangle className="h-4 w-4" />}
                               {gap.status === "Missing" && <X className="h-4 w-4" />}
@@ -487,8 +410,7 @@ export default function CandidateDetail() {
                             </span>
                           </td>
                           <td className="py-3 text-sm text-muted-foreground">{gap.note}</td>
-                        </tr>
-                      ))}
+                        </tr>)}
                     </tbody>
                   </table>
 
@@ -520,8 +442,7 @@ export default function CandidateDetail() {
               </div>
 
               <div className="space-y-6">
-                {candidate.experience.map((exp, index) => (
-                  <div key={index} className="flex gap-4">
+                {candidate.experience.map((exp, index) => <div key={index} className="flex gap-4">
                     <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                       <span className="text-primary font-medium text-sm">
                         {exp.company.charAt(0)}
@@ -536,16 +457,11 @@ export default function CandidateDetail() {
                         <span className="text-sm text-muted-foreground">{exp.period}</span>
                       </div>
                       <p className="text-sm text-muted-foreground mt-2">{exp.description}</p>
-                      {exp.tags.length > 0 && (
-                        <div className="flex gap-2 mt-2">
-                          {exp.tags.map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                          ))}
-                        </div>
-                      )}
+                      {exp.tags.length > 0 && <div className="flex gap-2 mt-2">
+                          {exp.tags.map(tag => <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>)}
+                        </div>}
                     </div>
-                  </div>
-                ))}
+                  </div>)}
               </div>
             </div>
 
@@ -553,8 +469,7 @@ export default function CandidateDetail() {
             <div className="card-elevated p-6">
               <h3 className="font-semibold text-foreground mb-4">Education</h3>
               <div className="space-y-4">
-                {candidate.education.map((edu, index) => (
-                  <div key={index} className="flex gap-4">
+                {candidate.education.map((edu, index) => <div key={index} className="flex gap-4">
                     <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                       🎓
                     </div>
@@ -563,8 +478,7 @@ export default function CandidateDetail() {
                       <p className="text-sm text-muted-foreground">{edu.school}</p>
                       <p className="text-sm text-muted-foreground">{edu.period}</p>
                     </div>
-                  </div>
-                ))}
+                  </div>)}
               </div>
             </div>
 
@@ -607,12 +521,7 @@ export default function CandidateDetail() {
               </div>
 
               <div className="flex gap-2">
-                <Input
-                  placeholder="Add a private note or use @ to mention teammates..."
-                  value={newNote}
-                  onChange={(e) => setNewNote(e.target.value)}
-                  className="flex-1"
-                />
+                <Input placeholder="Add a private note or use @ to mention teammates..." value={newNote} onChange={e => setNewNote(e.target.value)} className="flex-1" />
                 <Button className="btn-gradient" size="icon">
                   <Send className="h-4 w-4" />
                 </Button>
@@ -634,39 +543,26 @@ export default function CandidateDetail() {
             </DialogTitle>
             
             <p className="text-muted-foreground mb-6">
-              {successType === "interview"
-                ? `An email invitation has been automatically sent to ${candidate.name}.`
-                : "The candidate has been successfully notified via email regarding the status of their application."}
+              {successType === "interview" ? `An email invitation has been automatically sent to ${candidate.name}.` : "The candidate has been successfully notified via email regarding the status of their application."}
             </p>
 
-            <Button
-              variant="outline"
-              className="w-full mb-3 gap-2 text-success border-success/30 hover:bg-success/10"
-            >
+            <Button variant="outline" className="w-full mb-3 gap-2 text-success border-success/30 hover:bg-success/10">
               <MessageCircle className="h-4 w-4" />
               {successType === "interview" ? "Send WhatsApp Reminder" : "Notify via WhatsApp"}
             </Button>
 
-            <Button
-              className="w-full btn-gradient"
-              onClick={() => {
-                setShowSuccessModal(false);
-                navigate("/candidates");
-              }}
-            >
+            <Button className="w-full btn-gradient" onClick={() => {
+            setShowSuccessModal(false);
+            navigate("/candidates");
+          }}>
               {successType === "interview" ? "Back to Dashboard" : "Return to Candidate List"}
             </Button>
 
-            <Button
-              variant="link"
-              className="text-muted-foreground text-sm mt-2"
-              onClick={() => setShowSuccessModal(false)}
-            >
+            <Button variant="link" className="text-muted-foreground text-sm mt-2" onClick={() => setShowSuccessModal(false)}>
               ↩ Undo this action
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 }
