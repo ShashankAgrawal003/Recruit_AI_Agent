@@ -59,8 +59,39 @@ export default function CandidateDetail() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successType, setSuccessType] = useState<"interview" | "rejection">("interview");
   const [newNote, setNewNote] = useState("");
+  const [rejectionEmailContent, setRejectionEmailContent] = useState(
+    candidate.emailDrafts?.rejection_message || 
+    `Dear ${candidate.name},\n\nThank you for your interest in this position. After careful consideration, we have decided to move forward with other candidates.\n\nBest regards,\nRecruit-AI Team`
+  );
+  const [scheduleErrors, setScheduleErrors] = useState<{ date?: string; time?: string; email?: string }>({});
+
+  const validateSchedule = () => {
+    const errors: { date?: string; time?: string; email?: string } = {};
+    
+    if (!scheduleDate) {
+      errors.date = "Please select a date";
+    }
+    if (!scheduleTime) {
+      errors.time = "Please select a time";
+    }
+    if (!candidate.email) {
+      errors.email = "Candidate email is required";
+    }
+    
+    setScheduleErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleScheduleInterview = () => {
+    if (!validateSchedule()) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSuccessType("interview");
     setShowSuccessModal(true);
     toast({
@@ -77,6 +108,7 @@ export default function CandidateDetail() {
       description: `${candidate.name} has been notified.`,
     });
   };
+
 
   const skillMatchPercent = Math.round(
     (candidate.skillGaps.filter((s) => s.status === "Fully Met").length / candidate.skillGaps.length) * 100
@@ -210,20 +242,34 @@ export default function CandidateDetail() {
 
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Date</label>
+                  <label className="text-sm text-muted-foreground mb-1 block">Date *</label>
                   <Input
                     type="date"
                     value={scheduleDate}
-                    onChange={(e) => setScheduleDate(e.target.value)}
+                    onChange={(e) => {
+                      setScheduleDate(e.target.value);
+                      setScheduleErrors((prev) => ({ ...prev, date: undefined }));
+                    }}
+                    className={scheduleErrors.date ? "border-destructive" : ""}
                   />
+                  {scheduleErrors.date && (
+                    <p className="text-xs text-destructive mt-1">{scheduleErrors.date}</p>
+                  )}
                 </div>
                 <div>
-                  <label className="text-sm text-muted-foreground mb-1 block">Time</label>
+                  <label className="text-sm text-muted-foreground mb-1 block">Time *</label>
                   <Input
                     type="time"
                     value={scheduleTime}
-                    onChange={(e) => setScheduleTime(e.target.value)}
+                    onChange={(e) => {
+                      setScheduleTime(e.target.value);
+                      setScheduleErrors((prev) => ({ ...prev, time: undefined }));
+                    }}
+                    className={scheduleErrors.time ? "border-destructive" : ""}
                   />
+                  {scheduleErrors.time && (
+                    <p className="text-xs text-destructive mt-1">{scheduleErrors.time}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm text-muted-foreground mb-1 block">Duration</label>
@@ -267,7 +313,7 @@ export default function CandidateDetail() {
               </div>
             </div>
 
-            {/* Reject Application Section */}
+            {/* Reject Application Section with AI-Generated Email */}
             <div className="card-elevated p-6">
               <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
                 <X className="h-4 w-4 text-destructive" />
@@ -292,15 +338,15 @@ export default function CandidateDetail() {
 
               <div className="bg-muted/50 rounded-lg p-4 mb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">EMAIL PREVIEW</span>
-                  <Button variant="link" className="text-primary text-sm p-0">Edit Template</Button>
+                  <span className="text-sm font-medium">REJECTION EMAIL (AI-GENERATED)</span>
+                  <Badge variant="outline" className="text-xs">From n8n Analysis</Badge>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  <p>"Hi Sarah,</p>
-                  <p className="mt-2">Thank you for giving us the opportunity to consider your application. We appreciate the time you took to apply.</p>
-                  <p className="mt-2">Unfortunately, we have decided to move forward with other candidates who more closely match our current requirements. We will keep your resume on file for future openings.</p>
-                  <p className="mt-2">Best,<br/>Recruit-AI Team"</p>
-                </div>
+                <Textarea
+                  value={rejectionEmailContent}
+                  onChange={(e) => setRejectionEmailContent(e.target.value)}
+                  className="min-h-[120px] text-sm bg-background"
+                  placeholder="Rejection email content..."
+                />
               </div>
 
               <div className="flex items-center justify-between">
@@ -316,6 +362,7 @@ export default function CandidateDetail() {
                   </Button>
                 </div>
               </div>
+            </div>
             </div>
 
             {/* AI Analysis */}
@@ -562,18 +609,11 @@ export default function CandidateDetail() {
         </div>
       </div>
 
-      {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
         <DialogContent className="sm:max-w-md text-center">
           <div className="flex flex-col items-center py-6">
-            <div className={cn(
-              "w-16 h-16 rounded-full flex items-center justify-center mb-4",
-              successType === "interview" ? "bg-success/10" : "bg-primary/10"
-            )}>
-              <Check className={cn(
-                "h-8 w-8",
-                successType === "interview" ? "text-success" : "text-primary"
-              )} />
+            <div className={successType === "interview" ? "w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-success/10" : "w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-primary/10"}>
+              <Check className={successType === "interview" ? "h-8 w-8 text-success" : "h-8 w-8 text-primary"} />
             </div>
             
             <DialogTitle className="text-xl mb-2">
@@ -586,34 +626,6 @@ export default function CandidateDetail() {
                 : "The candidate has been successfully notified via email regarding the status of their application."}
             </p>
 
-            {successType === "interview" && (
-              <div className="w-full bg-muted/50 rounded-lg p-4 mb-6 text-left">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                    {candidate.initials}
-                  </div>
-                  <div>
-                    <p className="font-medium">{candidate.name}</p>
-                    <p className="text-sm text-muted-foreground">{candidate.role}</p>
-                  </div>
-                </div>
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    Tuesday, Oct 24, 2023
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    10:00 AM - 11:00 AM (EST)
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ExternalLink className="h-4 w-4" />
-                    <a href="#" className="text-primary hover:underline">meet.google.com/abc-defg-hij</a>
-                  </div>
-                </div>
-              </div>
-            )}
-
             <Button
               variant="outline"
               className="w-full mb-3 gap-2 text-success border-success/30 hover:bg-success/10"
@@ -621,12 +633,6 @@ export default function CandidateDetail() {
               <MessageCircle className="h-4 w-4" />
               {successType === "interview" ? "Send WhatsApp Reminder" : "Notify via WhatsApp"}
             </Button>
-
-            {successType === "interview" && (
-              <Button variant="outline" className="w-full mb-3 gap-2">
-                📋 Copy Interview Link
-              </Button>
-            )}
 
             <Button
               className="w-full btn-gradient"

@@ -12,6 +12,11 @@ export interface Job {
   createdAt: string;
 }
 
+export interface EmailDrafts {
+  rejection_message: string;
+  interview_message?: string;
+}
+
 export interface Candidate {
   id: string;
   name: string;
@@ -25,7 +30,8 @@ export interface Candidate {
   weightedScore: number;
   scoreLevel: 'High' | 'Good' | 'Low';
   summary: string;
-  status: 'Pending Review' | 'Shortlisted' | 'Rejected' | 'Hold';
+  status: 'Pending Review' | 'Shortlisted' | 'Rejected' | 'Hold' | 'Interview' | 'Selected';
+  recommendedAction?: 'Interview' | 'Reject' | 'Hold';
   skills: string[];
   experience: Experience[];
   education: Education[];
@@ -35,6 +41,8 @@ export interface Candidate {
   salaryExpectation: string;
   availability: string;
   linkedIn?: string;
+  interviewDate?: string;
+  emailDrafts?: EmailDrafts;
 }
 
 export interface Experience {
@@ -148,6 +156,7 @@ export const mockCandidates: Candidate[] = [
     scoreLevel: 'High',
     summary: 'Ex-Shopify lead with 7 years of experience. Strong TypeScript & React expertise with proven leadership.',
     status: 'Pending Review',
+    recommendedAction: 'Interview',
     skills: ['Figma', 'Prototyping', 'User Research', 'Design Systems', 'Agile'],
     experience: [
       {
@@ -189,7 +198,10 @@ export const mockCandidates: Candidate[] = [
     flags: ['High Salary'],
     salaryExpectation: '$145k',
     availability: 'Immediate',
-    linkedIn: 'linkedin.com/in/sarahjenkins'
+    linkedIn: 'linkedin.com/in/sarahjenkins',
+    emailDrafts: {
+      rejection_message: 'Dear Sarah,\n\nThank you for your interest in the Senior React Engineer position. After careful review of your application, we have decided to pursue other candidates whose experience more closely aligns with our current needs.\n\nWe appreciate your time and wish you the best in your job search.\n\nBest regards,\nRecruit-AI Team'
+    }
   },
   {
     id: '2',
@@ -203,7 +215,9 @@ export const mockCandidates: Candidate[] = [
     weightedScore: 78,
     scoreLevel: 'Good',
     summary: 'Good Python/Django skills, but lacks the specific Node.js requirement. 3 years experience.',
-    status: 'Shortlisted',
+    status: 'Interview',
+    recommendedAction: 'Interview',
+    interviewDate: '2024-01-25T10:00:00',
     skills: ['Python', 'Django', 'PostgreSQL', 'Docker'],
     experience: [
       {
@@ -229,7 +243,10 @@ export const mockCandidates: Candidate[] = [
     strengths: ['Modern UI', 'Fast Learner'],
     flags: ['Short Tenures', 'Remote Only'],
     salaryExpectation: '$130k',
-    availability: '2 Weeks'
+    availability: '2 Weeks',
+    emailDrafts: {
+      rejection_message: 'Dear Michael,\n\nThank you for applying. Unfortunately, we have decided to move forward with other candidates.\n\nBest regards,\nRecruit-AI Team'
+    }
   },
   {
     id: '3',
@@ -244,6 +261,7 @@ export const mockCandidates: Candidate[] = [
     scoreLevel: 'Low',
     summary: 'Resume formatting issues detected. Skills listed don\'t match job description.',
     status: 'Rejected',
+    recommendedAction: 'Reject',
     skills: ['JavaScript', 'HTML', 'CSS'],
     experience: [
       {
@@ -268,7 +286,10 @@ export const mockCandidates: Candidate[] = [
     strengths: [],
     flags: [],
     salaryExpectation: '$80k',
-    availability: 'Immediate'
+    availability: 'Immediate',
+    emailDrafts: {
+      rejection_message: 'Dear James,\n\nThank you for your interest in the Full Stack Engineer position. After reviewing your application, we have decided to move forward with candidates who have more experience in React and TypeScript.\n\nBest regards,\nRecruit-AI Team'
+    }
   },
   {
     id: '4',
@@ -283,6 +304,7 @@ export const mockCandidates: Candidate[] = [
     scoreLevel: 'High',
     summary: 'Portfolio shows strong Figma systems thinking. Background in B2B SaaS matches our needs.',
     status: 'Pending Review',
+    recommendedAction: 'Interview',
     skills: ['Figma', 'Sketch', 'User Research', 'Prototyping', 'Design Systems'],
     experience: [
       {
@@ -307,7 +329,10 @@ export const mockCandidates: Candidate[] = [
     strengths: ['Consulting Exp', 'Problem Solving'],
     flags: [],
     salaryExpectation: '$160k',
-    availability: '1 Month'
+    availability: '1 Month',
+    emailDrafts: {
+      rejection_message: 'Dear Emily,\n\nThank you for applying. We appreciate your time and interest in joining our team.\n\nBest regards,\nRecruit-AI Team'
+    }
   },
   {
     id: '5',
@@ -321,7 +346,8 @@ export const mockCandidates: Candidate[] = [
     weightedScore: 88,
     scoreLevel: 'High',
     summary: 'Strong frontend background with 5 years React experience. Good cultural fit.',
-    status: 'Shortlisted',
+    status: 'Selected',
+    recommendedAction: 'Interview',
     skills: ['React', 'TypeScript', 'Next.js', 'Tailwind'],
     experience: [
       {
@@ -346,7 +372,10 @@ export const mockCandidates: Candidate[] = [
     strengths: ['Modern UI', 'Fast Learner'],
     flags: ['Short Tenures', 'Remote Only'],
     salaryExpectation: '$130k',
-    availability: '2 Weeks'
+    availability: '2 Weeks',
+    emailDrafts: {
+      rejection_message: 'Dear David,\n\nThank you for applying. We appreciate your interest.\n\nBest regards,\nRecruit-AI Team'
+    }
   },
   {
     id: '6',
@@ -360,7 +389,8 @@ export const mockCandidates: Candidate[] = [
     weightedScore: 76,
     scoreLevel: 'Good',
     summary: 'Diverse freelance background. Good problem solver but looking for stability.',
-    status: 'Pending Review',
+    status: 'Hold',
+    recommendedAction: 'Hold',
     skills: ['React', 'Node.js', 'Python', 'AWS'],
     experience: [
       {
@@ -385,7 +415,10 @@ export const mockCandidates: Candidate[] = [
     strengths: ['Problem Solving', 'Consulting Exp'],
     flags: [],
     salaryExpectation: '$160k',
-    availability: '1 Month'
+    availability: '1 Month',
+    emailDrafts: {
+      rejection_message: 'Dear Alex,\n\nThank you for your application. We have decided to move forward with other candidates at this time.\n\nBest regards,\nRecruit-AI Team'
+    }
   }
 ];
 
