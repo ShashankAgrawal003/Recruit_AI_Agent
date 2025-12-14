@@ -245,8 +245,8 @@ export default function CandidateDetail() {
                   <Button variant="link" className="text-primary text-sm p-0">Edit Template</Button>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  <p>"Hi <Candidate Name>,</p>
-                  <p className="mt-2">18 Dec at 12:00 AM<strong className="text-foreground">Nov 14 at 10:00 AM</strong>. A calendar invite will follow this email.</p>
+                  <p>"Hi {candidate.name},</p>
+                  <p className="mt-2">We are excited to invite you for an interview on <strong className="text-foreground">{scheduleDate || 'TBD'} at {scheduleTime || 'TBD'}</strong>. A calendar invite will follow this email.</p>
                   <p className="mt-2">Best,<br />Recruit-AI Team"</p>
                 </div>
               </div>
