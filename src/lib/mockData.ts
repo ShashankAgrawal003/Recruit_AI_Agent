@@ -44,6 +44,7 @@ export interface Candidate {
   interviewDate?: string;
   emailDrafts?: EmailDrafts;
   resumeFileName?: string;
+  rawResumeText?: string;
 }
 
 export interface Experience {

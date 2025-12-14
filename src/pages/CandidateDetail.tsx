@@ -7,10 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Download, MessageCircle, Mail, Phone, MapPin, Linkedin, Calendar, Clock, ChevronDown, ChevronUp, Check, X, AlertTriangle, ArrowLeft, Sparkles, RefreshCw, Send, ExternalLink } from "lucide-react";
+import { Download, MessageCircle, Mail, Phone, MapPin, Linkedin, Calendar, Clock, ChevronDown, ChevronUp, Check, X, AlertTriangle, ArrowLeft, Sparkles, RefreshCw, Send, ExternalLink, GraduationCap, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useApp } from "@/contexts/AppContext";
+import { parseExperienceFromText, parseEducationFromText, calculateOverallFit } from "@/lib/parseResumeText";
+import { OverallFitBadge } from "@/components/OverallFitBadge";
 export default function CandidateDetail() {
   const {
     id
@@ -73,6 +75,12 @@ export default function CandidateDetail() {
     });
   };
   const skillMatchPercent = Math.round(candidate.skillGaps.filter(s => s.status === "Fully Met").length / candidate.skillGaps.length * 100);
+  const overallFit = calculateOverallFit(candidate.skillGaps);
+  
+  // Parse experience and education from raw resume text
+  const parsedExperience = parseExperienceFromText(candidate.rawResumeText);
+  const parsedEducation = parseEducationFromText(candidate.rawResumeText);
+  
   return <div className="min-h-screen bg-background">
       {/* Sub-header */}
       <div className="border-b border-border bg-card px-6 py-3">
@@ -317,6 +325,7 @@ export default function CandidateDetail() {
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-muted-foreground">BASE: <strong className="text-foreground">{candidate.baseScore}%</strong></span>
                   <span className="text-muted-foreground">WEIGHTED: <strong className="text-primary">{candidate.weightedScore}%</strong></span>
+                  <OverallFitBadge fit={overallFit} size="md" />
                   {candidate.recommendedAction && <Badge className={cn("text-xs", candidate.recommendedAction === "Interview" && "bg-success/10 text-success border-success/30", candidate.recommendedAction === "Reject" && "bg-destructive/10 text-destructive border-destructive/30", candidate.recommendedAction === "Hold" && "bg-warning/10 text-warning border-warning/30")} variant="outline">
                       {candidate.recommendedAction}
                     </Badge>}
@@ -417,7 +426,7 @@ export default function CandidateDetail() {
                       </div>
                       <div>
                         <span className="text-xs text-muted-foreground uppercase tracking-wide">Overall Fit</span>
-                        <p className="text-2xl font-bold text-success">High</p>
+                        <OverallFitBadge fit={overallFit} size="lg" />
                       </div>
                     </div>
                     <Button variant="outline" className="gap-2">
@@ -428,6 +437,62 @@ export default function CandidateDetail() {
                 </CollapsibleContent>
               </div>
             </Collapsible>
+
+            {/* Parsed Experience & Education from Resume Text */}
+            {(parsedExperience.length > 0 || parsedEducation.length > 0 || candidate.rawResumeText) && (
+              <div className="card-elevated p-6">
+                <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4">
+                  <Briefcase className="h-4 w-4 text-primary" />
+                  Experience & Education (Parsed from Resume)
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Parsed Experience */}
+                  <div>
+                    <h4 className="font-medium text-foreground flex items-center gap-2 mb-3">
+                      <Briefcase className="h-3.5 w-3.5" />
+                      Experience
+                    </h4>
+                    {parsedExperience.length > 0 ? (
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        {parsedExperience.map((exp, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <span className="text-primary mt-1">•</span>
+                            <span>{exp.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground/70 italic">
+                        Experience details not detected in resume
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Parsed Education */}
+                  <div>
+                    <h4 className="font-medium text-foreground flex items-center gap-2 mb-3">
+                      <GraduationCap className="h-3.5 w-3.5" />
+                      Education
+                    </h4>
+                    {parsedEducation.length > 0 ? (
+                      <ul className="space-y-2 text-sm text-muted-foreground">
+                        {parsedEducation.map((edu, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <span className="text-primary mt-1">•</span>
+                            <span>{edu.text}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground/70 italic">
+                        Education details not found in resume
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Experience */}
             <div className="card-elevated p-6">

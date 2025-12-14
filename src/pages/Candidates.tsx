@@ -29,6 +29,8 @@ import { ResumeUploader } from "@/components/ResumeUploader";
 import { JdUploader } from "@/components/JdUploader";
 import { useApp } from "@/contexts/AppContext";
 import { toast } from "@/hooks/use-toast";
+import { calculateOverallFit } from "@/lib/parseResumeText";
+import { OverallFitBadge } from "@/components/OverallFitBadge";
 
 function ScoreBar({ score, level }: { score: number; level: string }) {
   const colorClass = {
@@ -400,6 +402,9 @@ export default function Candidates() {
                 AI Match
               </th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Overall Fit
+              </th>
+              <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 AI Summary
               </th>
               <th className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -432,6 +437,9 @@ export default function Candidates() {
                 </td>
                 <td className="px-4 py-4">
                   <ScoreBar score={candidate.weightedScore} level={candidate.scoreLevel} />
+                </td>
+                <td className="px-4 py-4">
+                  <OverallFitBadge fit={calculateOverallFit(candidate.skillGaps)} />
                 </td>
                 <td className="px-4 py-4 max-w-xs">
                   <p className="text-sm text-muted-foreground line-clamp-2">
