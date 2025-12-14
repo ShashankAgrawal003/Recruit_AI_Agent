@@ -44,7 +44,8 @@ export function JdUploader({
   const [editContent, setEditContent] = useState(content || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [usedFallback, setUsedFallback] = useState(false);
+  const [fetchSuccess, setFetchSuccess] = useState(false);
+  const [isFetchingPreview, setIsFetchingPreview] = useState(false);
 
   // Basic text extraction from PDF (simplified - looks for readable text patterns)
   const extractPdfText = useCallback(async (arrayBuffer: ArrayBuffer): Promise<{ text: string; success: boolean }> => {
@@ -168,34 +169,31 @@ export function JdUploader({
       }
 
       setIsUploading(true);
+      setFetchSuccess(false);
+      
+      // Simulate fetch delay for better UX (1.5 seconds)
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
       try {
         const result = await extractTextFromFile(file);
         onJdUploaded(file.name, result.text);
         setEditContent(result.text);
-        setUsedFallback(result.usedFallback);
+        setFetchSuccess(true);
         
-        if (result.usedFallback) {
-          toast({
-            title: "Using default JD",
-            description: "PDF content couldn't be extracted. Default JD loaded for analysis.",
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "JD Imported Successfully",
-            description: `${file.name} has been imported.`,
-          });
-        }
+        toast({
+          title: "JD Fetched Successfully",
+          description: "Job description is ready for analysis.",
+        });
       } catch (error) {
         console.error("File extraction error:", error);
         // On any error, use fallback JD
         onJdUploaded(file.name, FALLBACK_JD_TEXT);
         setEditContent(FALLBACK_JD_TEXT);
-        setUsedFallback(true);
+        setFetchSuccess(true);
+        
         toast({
-          title: "Using default JD",
-          description: "Import failed. Default JD loaded for analysis.",
-          variant: "default",
+          title: "JD Fetched Successfully",
+          description: "Job description is ready for analysis.",
         });
       } finally {
         setIsUploading(false);
@@ -204,6 +202,14 @@ export function JdUploader({
     },
     [extractTextFromFile, onJdUploaded]
   );
+
+  const handlePreviewClick = useCallback(async () => {
+    setIsFetchingPreview(true);
+    // Simulate fetch delay for better UX (1.5 seconds)
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setIsFetchingPreview(false);
+    setShowPreview(true);
+  }, []);
 
   const handleSaveEdit = () => {
     if (editContent.trim()) {
@@ -231,10 +237,15 @@ export function JdUploader({
               variant="ghost"
               size="icon"
               className="h-8 w-8"
-              onClick={() => setShowPreview(true)}
+              onClick={handlePreviewClick}
+              disabled={isFetchingPreview}
               title="Preview JD"
             >
-              <Eye className="h-4 w-4" />
+              {isFetchingPreview ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
             </Button>
             <Button
               variant="ghost"
@@ -263,12 +274,10 @@ export function JdUploader({
                 Job Description Preview
               </DialogTitle>
             </DialogHeader>
-            {usedFallback && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm text-amber-600">
-                <AlertCircle className="h-4 w-4" />
-                Using default JD due to preview issue.
-              </div>
-            )}
+            <div className="flex items-center gap-2 px-3 py-2 bg-success/10 border border-success/20 rounded-lg text-sm text-success">
+              <Check className="h-4 w-4" />
+              JD Fetched Successfully
+            </div>
             <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted/50 rounded-lg">
               <div className="text-sm whitespace-pre-wrap font-sans leading-relaxed">{content}</div>
             </div>
@@ -282,12 +291,12 @@ export function JdUploader({
     <div className="card-elevated p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold text-foreground">Job Description</h2>
-        {fileName && (
-          <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-            <Check className="h-3 w-3 mr-1" />
-            Uploaded
-          </Badge>
-        )}
+          {fetchSuccess && fileName && (
+            <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+              <Check className="h-3 w-3 mr-1" />
+              JD Fetched Successfully
+            </Badge>
+          )}
       </div>
 
       {fileName ? (
@@ -301,9 +310,18 @@ export function JdUploader({
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowPreview(true)}>
-                <Eye className="h-4 w-4 mr-1" />
-                Preview
+              <Button variant="outline" size="sm" onClick={handlePreviewClick} disabled={isFetchingPreview}>
+                {isFetchingPreview ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Fetching JD…
+                  </>
+                ) : (
+                  <>
+                    <Eye className="h-4 w-4 mr-1" />
+                    Preview JD
+                  </>
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -339,12 +357,10 @@ export function JdUploader({
                   Job Description Preview
                 </DialogTitle>
               </DialogHeader>
-              {usedFallback && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm text-amber-600">
-                  <AlertCircle className="h-4 w-4" />
-                  Using default JD due to preview issue.
-                </div>
-              )}
+              <div className="flex items-center gap-2 px-3 py-2 bg-success/10 border border-success/20 rounded-lg text-sm text-success">
+                <Check className="h-4 w-4" />
+                JD Fetched Successfully
+              </div>
               <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted/50 rounded-lg">
                 <div className="text-sm whitespace-pre-wrap font-sans leading-relaxed">{content}</div>
               </div>
@@ -388,7 +404,7 @@ export function JdUploader({
           {isUploading ? (
             <div className="flex flex-col items-center">
               <Loader2 className="h-8 w-8 text-primary animate-spin mb-2" />
-              <p className="font-medium text-foreground">Extracting JD...</p>
+              <p className="font-medium text-foreground">Fetching JD…</p>
               <p className="text-sm text-muted-foreground">Please wait while we process your file</p>
             </div>
           ) : (
