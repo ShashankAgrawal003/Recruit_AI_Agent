@@ -241,19 +241,14 @@ export default function Candidates() {
         matchesStatus = true;
         break;
       case "Shortlisted":
-        matchesStatus = c.status === "Shortlisted";
+        // Shortlisted filter includes Shortlisted, Interview, and Selected statuses
+        matchesStatus = c.status === "Shortlisted" || c.status === "Interview" || c.status === "Selected";
         break;
       case "Pending":
         matchesStatus = c.status === "Pending Review";
         break;
-      case "Interview":
-        matchesStatus = c.status === "Interview";
-        break;
       case "Rejected":
         matchesStatus = c.status === "Rejected";
-        break;
-      case "Selected":
-        matchesStatus = c.status === "Selected";
         break;
       default:
         matchesStatus = true;
