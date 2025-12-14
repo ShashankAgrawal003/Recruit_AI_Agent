@@ -33,22 +33,17 @@ export default function CandidateDetail() {
   const [scheduleErrors, setScheduleErrors] = useState<{
     date?: string;
     time?: string;
-    email?: string;
   }>({});
   const validateSchedule = () => {
     const errors: {
       date?: string;
       time?: string;
-      email?: string;
     } = {};
     if (!scheduleDate) {
       errors.date = "Please select a date";
     }
     if (!scheduleTime) {
       errors.time = "Please select a time";
-    }
-    if (!candidate.email) {
-      errors.email = "Candidate email is required";
     }
     setScheduleErrors(errors);
     return Object.keys(errors).length === 0;
