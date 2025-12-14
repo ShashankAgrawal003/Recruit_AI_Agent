@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Download, MessageCircle, Mail, Phone, MapPin, Linkedin, Calendar, Clock, ChevronDown, ChevronUp, Check, X, AlertTriangle, ArrowLeft, Sparkles, RefreshCw, Send, ExternalLink, GraduationCap, Briefcase } from "lucide-react";
+import { Download, MessageCircle, Mail, Phone, MapPin, Linkedin, Calendar, Clock, ChevronDown, ChevronUp, Check, X, AlertTriangle, ArrowLeft, Sparkles, RefreshCw, Send, ExternalLink, GraduationCap, Briefcase, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useApp } from "@/contexts/AppContext";
@@ -36,6 +36,8 @@ export default function CandidateDetail() {
     date?: string;
     time?: string;
   }>({});
+  const [isScheduling, setIsScheduling] = useState(false);
+  
   const validateSchedule = () => {
     const errors: {
       date?: string;
@@ -50,7 +52,8 @@ export default function CandidateDetail() {
     setScheduleErrors(errors);
     return Object.keys(errors).length === 0;
   };
-  const handleScheduleInterview = () => {
+  
+  const handleScheduleInterview = async () => {
     if (!validateSchedule()) {
       toast({
         title: "Validation Error",
@@ -59,12 +62,59 @@ export default function CandidateDetail() {
       });
       return;
     }
-    setSuccessType("interview");
-    setShowSuccessModal(true);
-    toast({
-      title: "Interview Scheduled!",
-      description: `Interview invitation sent to ${candidate.name}.`
-    });
+    
+    setIsScheduling(true);
+    
+    // Build email content
+    const candidateEmail = candidate.email || "agrawalshashank003@gmail.com";
+    const candidateName = candidate.name;
+    const interviewDate = scheduleDate;
+    const interviewTime = scheduleTime;
+    const duration = `${scheduleDuration} minutes`;
+    
+    const emailContent = `Hi ${candidateName},
+
+We are excited to invite you for an interview on ${interviewDate} at ${interviewTime} (for ${duration}). A calendar invite will follow this email.
+
+Best,
+Recruit-AI Team`;
+
+    try {
+      const response = await fetch("https://shashankagra03.app.n8n.cloud/webhook/98777b71-7cc3-4e8b-8fe7-0e606a457b91", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          candidate_email: candidateEmail,
+          candidate_name: candidateName,
+          interview_date: interviewDate,
+          interview_time: interviewTime,
+          duration: duration,
+          email_content: emailContent
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Webhook request failed");
+      }
+
+      setSuccessType("interview");
+      setShowSuccessModal(true);
+      toast({
+        title: "Interview Scheduled!",
+        description: `Interview invitation sent to ${candidate.name}.`
+      });
+    } catch (error) {
+      console.error("Error scheduling interview:", error);
+      toast({
+        title: "Error",
+        description: "Failed to schedule interview. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsScheduling(false);
+    }
   };
   const handleReject = () => {
     setSuccessType("rejection");
@@ -341,10 +391,19 @@ export default function CandidateDetail() {
                   Share via WhatsApp
                 </Button>
                 <div className="flex gap-2">
-                  <Button variant="outline">Cancel</Button>
-                  <Button className="btn-gradient gap-2" onClick={handleScheduleInterview}>
-                    <Send className="h-4 w-4" />
-                    Schedule Interview & Email Candidate
+                  <Button variant="outline" disabled={isScheduling}>Cancel</Button>
+                  <Button className="btn-gradient gap-2" onClick={handleScheduleInterview} disabled={isScheduling}>
+                    {isScheduling ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Scheduling...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" />
+                        Schedule Interview & Email Candidate
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
