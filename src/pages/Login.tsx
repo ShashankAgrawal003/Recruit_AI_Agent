@@ -4,20 +4,26 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Mail, Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Sparkles, AlertCircle, Loader2, User } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 export default function Login() {
   const navigate = useNavigate();
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; general?: string }>({});
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: { name?: string; email?: string; password?: string } = {};
+
+    // Name validation only for sign up
+    if (isSignUp && !name.trim()) {
+      newErrors.name = "Name is required";
+    }
 
     if (!email) {
       newErrors.email = "Email is required";
@@ -46,16 +52,25 @@ export default function Login() {
     // Simulate authentication delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Demo login - accept any valid email/password
-    if (email && password.length >= 6) {
+    // Password validation - must match exact password
+    const CORRECT_PASSWORD = "PASSWORd@123";
+    
+    if (password !== CORRECT_PASSWORD) {
       toast({
-        title: isSignUp ? "Account Created!" : "Welcome Back!",
-        description: "Redirecting to dashboard...",
+        title: "Wrong Password",
+        description: "Please enter the correct password.",
+        variant: "destructive",
       });
-      navigate("/dashboard");
-    } else {
-      setErrors({ general: "Invalid credentials. Please try again." });
+      setIsLoading(false);
+      return;
     }
+
+    // Success login
+    toast({
+      title: isSignUp ? "Account Created!" : "Welcome Back!",
+      description: "Redirecting to dashboard...",
+    });
+    navigate("/dashboard");
 
     setIsLoading(false);
   };
@@ -136,6 +151,33 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Name field - only show for Sign Up */}
+              {isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name*</Label>
+                  <div className="relative">
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Enter your full name"
+                      value={name}
+                      onChange={(e) => {
+                        setName(e.target.value);
+                        if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
+                      }}
+                      className={`pr-10 ${errors.name ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    />
+                    <User className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
+                  {errors.name && (
+                    <p className="text-sm text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.name}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <div className="relative">
