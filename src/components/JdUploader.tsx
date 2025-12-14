@@ -17,9 +17,11 @@ import {
   Check,
   Loader2,
   Edit3,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { FALLBACK_JD_TEXT, isReadableText, cleanExtractedText } from "@/lib/fallbackJd";
 
 interface JdUploaderProps {
   fileName: string | null;
@@ -42,13 +44,15 @@ export function JdUploader({
   const [editContent, setEditContent] = useState(content || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [usedFallback, setUsedFallback] = useState(false);
+
   // Basic text extraction from PDF (simplified - looks for readable text patterns)
-  const extractPdfText = useCallback(async (arrayBuffer: ArrayBuffer): Promise<string> => {
+  const extractPdfText = useCallback(async (arrayBuffer: ArrayBuffer): Promise<{ text: string; success: boolean }> => {
     try {
       const uint8Array = new Uint8Array(arrayBuffer);
       const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8Array);
       
-      // Try to extract text between BT and ET markers (PDF text objects)
+      // Try to extract text between parentheses (PDF text objects)
       const textMatches: string[] = [];
       const regex = /\((.*?)\)/g;
       let match;
@@ -61,23 +65,29 @@ export function JdUploader({
       }
       
       if (textMatches.length > 10) {
-        return textMatches.join(" ").replace(/\s+/g, " ").trim();
+        const extractedText = textMatches.join(" ").replace(/\s+/g, " ").trim();
+        if (isReadableText(extractedText)) {
+          return { text: cleanExtractedText(extractedText), success: true };
+        }
       }
 
       // Fallback: try to find any readable sequences
       const readableText = text.match(/[A-Za-z][A-Za-z0-9\s.,;:'"!?()-]{20,}/g);
       if (readableText && readableText.length > 0) {
-        return readableText.join(" ").replace(/\s+/g, " ").trim();
+        const joined = readableText.join(" ").replace(/\s+/g, " ").trim();
+        if (isReadableText(joined)) {
+          return { text: cleanExtractedText(joined), success: true };
+        }
       }
 
-      return "";
+      return { text: "", success: false };
     } catch {
-      return "";
+      return { text: "", success: false };
     }
   }, []);
 
   // Basic text extraction from DOCX
-  const extractDocxText = useCallback(async (arrayBuffer: ArrayBuffer): Promise<string> => {
+  const extractDocxText = useCallback(async (arrayBuffer: ArrayBuffer): Promise<{ text: string; success: boolean }> => {
     try {
       const uint8Array = new Uint8Array(arrayBuffer);
       const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8Array);
@@ -85,36 +95,50 @@ export function JdUploader({
       // Extract text from XML tags
       const matches = text.match(/<w:t[^>]*>(.*?)<\/w:t>/g);
       if (matches && matches.length > 0) {
-        return matches
+        const extracted = matches
           .map((m) => m.replace(/<w:t[^>]*>|<\/w:t>/g, ""))
           .join(" ")
           .replace(/\s+/g, " ")
           .trim();
+        
+        if (isReadableText(extracted)) {
+          return { text: cleanExtractedText(extracted), success: true };
+        }
       }
 
-      return "";
+      return { text: "", success: false };
     } catch {
-      return "";
+      return { text: "", success: false };
     }
   }, []);
 
-  const extractTextFromFile = useCallback(async (file: File): Promise<string> => {
+  const extractTextFromFile = useCallback(async (file: File): Promise<{ text: string; usedFallback: boolean }> => {
     const arrayBuffer = await file.arrayBuffer();
     
     if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-      const text = await extractPdfText(arrayBuffer);
-      if (text && text.length > 50) return text;
-      return `[PDF detected: ${file.name}]\n\nNote: For complex PDFs, please paste the JD content directly into the edit field after clicking "Edit".`;
+      const result = await extractPdfText(arrayBuffer);
+      if (result.success && result.text.length > 50) {
+        return { text: result.text, usedFallback: false };
+      }
+      // Use fallback JD for failed PDF extraction
+      return { text: FALLBACK_JD_TEXT, usedFallback: true };
     }
 
     if (file.name.toLowerCase().endsWith(".docx")) {
-      const text = await extractDocxText(arrayBuffer);
-      if (text && text.length > 50) return text;
-      return `[DOCX detected: ${file.name}]\n\nNote: For best results, please paste the JD content directly into the edit field after clicking "Edit".`;
+      const result = await extractDocxText(arrayBuffer);
+      if (result.success && result.text.length > 50) {
+        return { text: result.text, usedFallback: false };
+      }
+      // Use fallback JD for failed DOCX extraction
+      return { text: FALLBACK_JD_TEXT, usedFallback: true };
     }
 
     // For text files
-    return await file.text();
+    const textContent = await file.text();
+    if (isReadableText(textContent)) {
+      return { text: textContent, usedFallback: false };
+    }
+    return { text: FALLBACK_JD_TEXT, usedFallback: true };
   }, [extractPdfText, extractDocxText]);
 
   const handleFileSelect = useCallback(
@@ -145,14 +169,15 @@ export function JdUploader({
 
       setIsUploading(true);
       try {
-        const text = await extractTextFromFile(file);
-        onJdUploaded(file.name, text);
-        setEditContent(text);
+        const result = await extractTextFromFile(file);
+        onJdUploaded(file.name, result.text);
+        setEditContent(result.text);
+        setUsedFallback(result.usedFallback);
         
-        if (text.includes("[PDF detected:") || text.includes("[DOCX detected:")) {
+        if (result.usedFallback) {
           toast({
-            title: "File imported",
-            description: "Click 'Edit' to paste or modify the JD content.",
+            title: "Using default JD",
+            description: "PDF content couldn't be extracted. Default JD loaded for analysis.",
             variant: "default",
           });
         } else {
@@ -163,10 +188,14 @@ export function JdUploader({
         }
       } catch (error) {
         console.error("File extraction error:", error);
+        // On any error, use fallback JD
+        onJdUploaded(file.name, FALLBACK_JD_TEXT);
+        setEditContent(FALLBACK_JD_TEXT);
+        setUsedFallback(true);
         toast({
-          title: "Import Failed",
-          description: "Could not process the file. Please try again.",
-          variant: "destructive",
+          title: "Using default JD",
+          description: "Import failed. Default JD loaded for analysis.",
+          variant: "default",
         });
       } finally {
         setIsUploading(false);
@@ -231,11 +260,17 @@ export function JdUploader({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
-                {fileName}
+                Job Description Preview
               </DialogTitle>
             </DialogHeader>
+            {usedFallback && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm text-amber-600">
+                <AlertCircle className="h-4 w-4" />
+                Using default JD due to preview issue.
+              </div>
+            )}
             <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted/50 rounded-lg">
-              <pre className="text-sm whitespace-pre-wrap font-sans">{content}</pre>
+              <div className="text-sm whitespace-pre-wrap font-sans leading-relaxed">{content}</div>
             </div>
           </DialogContent>
         </Dialog>
@@ -301,11 +336,17 @@ export function JdUploader({
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary" />
-                  {fileName}
+                  Job Description Preview
                 </DialogTitle>
               </DialogHeader>
+              {usedFallback && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm text-amber-600">
+                  <AlertCircle className="h-4 w-4" />
+                  Using default JD due to preview issue.
+                </div>
+              )}
               <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted/50 rounded-lg">
-                <pre className="text-sm whitespace-pre-wrap font-sans">{content}</pre>
+                <div className="text-sm whitespace-pre-wrap font-sans leading-relaxed">{content}</div>
               </div>
             </DialogContent>
           </Dialog>
