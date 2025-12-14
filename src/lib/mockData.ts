@@ -36,13 +36,14 @@ export interface Candidate {
   experience: Experience[];
   education: Education[];
   skillGaps: SkillGap[];
-  strengths: string[];
-  flags: string[];
-  salaryExpectation: string;
-  availability: string;
+  strengths?: string[];
+  flags?: string[];
+  salaryExpectation?: string;
+  availability?: string;
   linkedIn?: string;
   interviewDate?: string;
   emailDrafts?: EmailDrafts;
+  resumeFileName?: string;
 }
 
 export interface Experience {
