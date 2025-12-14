@@ -426,7 +426,12 @@ export default function CandidateDetail() {
                       </div>
                       <div>
                         <span className="text-xs text-muted-foreground uppercase tracking-wide">Overall Fit</span>
-                        <OverallFitBadge fit={overallFit} size="lg" />
+                        <p className={cn(
+                          "text-2xl font-bold",
+                          overallFit === "High" && "text-success",
+                          overallFit === "Moderate" && "text-warning",
+                          overallFit === "Low" && "text-destructive"
+                        )}>{overallFit}</p>
                       </div>
                     </div>
                     <Button variant="outline" className="gap-2">
