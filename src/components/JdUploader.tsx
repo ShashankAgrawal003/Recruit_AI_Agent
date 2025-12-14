@@ -279,7 +279,9 @@ export function JdUploader({
               JD Fetched Successfully
             </div>
             <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted/50 rounded-lg">
-              <div className="text-sm whitespace-pre-wrap font-sans leading-relaxed">{content}</div>
+              <div className="text-sm whitespace-pre-wrap font-sans leading-relaxed">
+                {isReadableText(content) ? content : FALLBACK_JD_TEXT}
+              </div>
             </div>
           </DialogContent>
         </Dialog>
@@ -362,7 +364,9 @@ export function JdUploader({
                 JD Fetched Successfully
               </div>
               <div className="overflow-y-auto max-h-[60vh] p-4 bg-muted/50 rounded-lg">
-                <div className="text-sm whitespace-pre-wrap font-sans leading-relaxed">{content}</div>
+                <div className="text-sm whitespace-pre-wrap font-sans leading-relaxed">
+                  {isReadableText(content) ? content : FALLBACK_JD_TEXT}
+                </div>
               </div>
             </DialogContent>
           </Dialog>
