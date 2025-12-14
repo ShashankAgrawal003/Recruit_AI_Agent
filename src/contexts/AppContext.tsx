@@ -5,6 +5,7 @@ interface AppContextType {
   jobs: Job[];
   candidates: Candidate[];
   addJob: (job: Omit<Job, "id" | "createdAt">) => Job;
+  addCandidate: (candidate: Omit<Candidate, "id">) => Candidate;
   updateJob: (id: string, updates: Partial<Job>) => void;
   updateCandidate: (id: string, updates: Partial<Candidate>) => void;
   getJobById: (id: string) => Job | undefined;
@@ -38,6 +39,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
     setJobs((prev) => [newJob, ...prev]);
     return newJob;
+  }, []);
+
+  const addCandidate = useCallback((candidateData: Omit<Candidate, "id">) => {
+    const newCandidate: Candidate = {
+      ...candidateData,
+      id: `candidate-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    };
+    setCandidates((prev) => [newCandidate, ...prev]);
+    return newCandidate;
   }, []);
 
   const updateJob = useCallback((id: string, updates: Partial<Job>) => {
@@ -84,6 +94,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         jobs,
         candidates,
         addJob,
+        addCandidate,
         updateJob,
         updateCandidate,
         getJobById,

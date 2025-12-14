@@ -20,13 +20,15 @@ import {
   Undo2,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
-import { mockCandidates, type Candidate } from "@/lib/mockData";
+import { type Candidate } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
-import { useResumeUpload } from "@/hooks/useResumeUpload";
+import { useResumeUpload, type AnalysisResult } from "@/hooks/useResumeUpload";
 import { ResumeUploader } from "@/components/ResumeUploader";
 import { JdUploader } from "@/components/JdUploader";
 import { useApp } from "@/contexts/AppContext";
+import { toast } from "@/hooks/use-toast";
 
 function ScoreBar({ score, level }: { score: number; level: string }) {
   const colorClass = {
@@ -88,7 +90,7 @@ const DEFAULT_JD_TEXT = `We are looking for a Senior React Engineer with 5+ year
 export default function Candidates() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { getJobById, activeJobJd, setActiveJobJd } = useApp();
+  const { getJobById, activeJobJd, setActiveJobJd, candidates, addCandidate, updateCandidate, kpis } = useApp();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("score");
@@ -130,6 +132,70 @@ export default function Candidates() {
     cancelUpload,
   } = useResumeUpload(effectiveJdContent || undefined);
 
+  // Monitor completed file uploads and add them as candidates
+  useEffect(() => {
+    const completedFiles = files.filter(f => f.status === "complete" && f.result);
+    
+    completedFiles.forEach(file => {
+      // Check if candidate with this file name already exists (avoid duplicates)
+      const existingCandidate = candidates.find(c => c.resumeFileName === file.name);
+      if (existingCandidate) return;
+      
+      const result = file.result as AnalysisResult;
+      
+      // Extract candidate name from filename (e.g., "Shashank_Agrawal_Resume.pdf" -> "Shashank Agrawal")
+      const nameFromFile = file.name
+        .replace(/\.(pdf|docx)$/i, '')
+        .replace(/_resume|resume_|_cv|cv_/gi, '')
+        .replace(/[_-]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      const initials = nameFromFile.split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(n => n.charAt(0).toUpperCase())
+        .join('');
+      
+      // Determine score level
+      const scoreLevel = result.score >= 70 ? 'High' : result.score >= 50 ? 'Good' : 'Low';
+      
+      // Create new candidate from analysis result
+      const newCandidate: Omit<Candidate, "id"> = {
+        name: nameFromFile || "Unknown Candidate",
+        initials: initials || "?",
+        role: "Candidate", // Could be parsed from resume if available
+        location: "Not specified",
+        email: "",
+        phone: "",
+        skills: [],
+        baseScore: result.score,
+        weightedScore: result.score,
+        scoreLevel,
+        summary: result.summary || "No summary available",
+        status: "Pending Review",
+        recommendedAction: result.recommendedAction,
+        experience: [],
+        education: [],
+        skillGaps: result.skill_gap_analysis?.map(sg => ({
+          skill: sg.skill,
+          priority: sg.priority,
+          status: sg.status,
+          note: sg.note,
+        })) || [],
+        resumeFileName: file.name,
+        emailDrafts: result.emailDrafts,
+        interviewDate: undefined,
+      };
+      
+      addCandidate(newCandidate);
+      toast({
+        title: "Candidate analysis added successfully",
+        description: `${nameFromFile} has been added to the pipeline.`,
+      });
+    });
+  }, [files, candidates, addCandidate]);
+
   // JD handlers
   const handleJdUploaded = (fileName: string, content: string) => {
     setLocalJdFileName(fileName);
@@ -146,11 +212,25 @@ export default function Candidates() {
   // Determine if resume upload should be disabled (no JD uploaded for non-prefilled roles)
   const needsJdUpload = !hasPrefilledJd && !effectiveJdContent;
 
-  const filteredCandidates = mockCandidates.filter((c) => {
+  // Sort candidates based on sortBy
+  const sortedCandidates = [...candidates].sort((a, b) => {
+    switch (sortBy) {
+      case "score":
+        return b.weightedScore - a.weightedScore;
+      case "name":
+        return a.name.localeCompare(b.name);
+      case "date":
+        return 0; // No date field currently
+      default:
+        return 0;
+    }
+  });
+
+  const filteredCandidates = sortedCandidates.filter((c) => {
     const matchesSearch = c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.role.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "Shortlisted" && c.status === "Shortlisted") ||
+      (statusFilter === "Shortlisted" && (c.status === "Shortlisted" || c.recommendedAction === "Interview")) ||
       (statusFilter === "Pending" && c.status === "Pending Review");
     return matchesSearch && matchesStatus;
   });
@@ -178,10 +258,10 @@ export default function Candidates() {
         </div>
         <div className="flex gap-2">
           <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-            50 Processed
+            {kpis.totalApplicants} Processed
           </Badge>
           <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-            12 Shortlisted
+            {kpis.shortlisted} Shortlisted
           </Badge>
         </div>
       </div>
@@ -399,7 +479,7 @@ export default function Candidates() {
         {/* Pagination */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           <p className="text-sm text-muted-foreground">
-            Showing <strong>1-{filteredCandidates.length}</strong> of <strong>50</strong> candidates
+            Showing <strong>1-{filteredCandidates.length}</strong> of <strong>{candidates.length}</strong> candidates
           </p>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" className="h-8 w-8" disabled>

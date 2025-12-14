@@ -42,14 +42,15 @@ import {
   Send,
   ExternalLink,
 } from "lucide-react";
-import { mockCandidates } from "@/lib/mockData";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useApp } from "@/contexts/AppContext";
 
 export default function CandidateDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const candidate = mockCandidates.find((c) => c.id === id) || mockCandidates[0];
+  const { candidates, updateCandidate } = useApp();
+  const candidate = candidates.find((c) => c.id === id) || candidates[0];
   
   const [skillGapOpen, setSkillGapOpen] = useState(true);
   const [scheduleDate, setScheduleDate] = useState("");
@@ -374,11 +375,24 @@ export default function CandidateDetail() {
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-muted-foreground">BASE: <strong className="text-foreground">{candidate.baseScore}%</strong></span>
                   <span className="text-muted-foreground">WEIGHTED: <strong className="text-primary">{candidate.weightedScore}%</strong></span>
+                  {candidate.recommendedAction && (
+                    <Badge 
+                      className={cn(
+                        "text-xs",
+                        candidate.recommendedAction === "Interview" && "bg-success/10 text-success border-success/30",
+                        candidate.recommendedAction === "Reject" && "bg-destructive/10 text-destructive border-destructive/30",
+                        candidate.recommendedAction === "Hold" && "bg-warning/10 text-warning border-warning/30"
+                      )}
+                      variant="outline"
+                    >
+                      {candidate.recommendedAction}
+                    </Badge>
+                  )}
                 </div>
               </div>
 
               <p className="text-muted-foreground mb-6">
-                Sarah is a <strong className="text-foreground">strong match</strong> for the Senior Designer role. She has extensive experience in B2B SaaS product design, particularly in fin-tech environments which aligns with our current roadmap. Her portfolio demonstrates a clear ability to simplify complex workflows.
+                {candidate.summary || "No AI summary available for this candidate."}
               </p>
 
               <div className="grid grid-cols-2 gap-6">
