@@ -68,6 +68,7 @@ function ScoreBar({ score, level }: { score: number; level: string }) {
 function StatusBadge({ status }: { status: Candidate["status"] }) {
   const styles: Record<string, string> = {
     "Pending Review": "bg-muted text-muted-foreground",
+    Pending: "bg-muted text-muted-foreground",
     Shortlisted: "bg-primary/10 text-primary",
     Rejected: "bg-destructive/10 text-destructive",
     Hold: "bg-warning/10 text-warning",
@@ -75,12 +76,15 @@ function StatusBadge({ status }: { status: Candidate["status"] }) {
     Selected: "bg-success/10 text-success",
   };
 
+  // Display "Pending" instead of "Pending Review"
+  const displayStatus = status === "Pending Review" ? "Pending" : status;
+
   return (
     <span className={cn(
       "px-2.5 py-1 rounded-full text-xs font-medium",
       styles[status] || "bg-muted text-muted-foreground"
     )}>
-      {status}
+      {displayStatus}
     </span>
   );
 }
