@@ -29,10 +29,13 @@ import {
   SlidersHorizontal,
   Upload,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { defaultWeights, type PriorityWeights } from "@/lib/mockData";
 import { toast } from "@/hooks/use-toast";
 import { useApp } from "@/contexts/AppContext";
+import { FALLBACK_JD_TEXT, isReadableText, cleanExtractedText } from "@/lib/fallbackJd";
+import { cn } from "@/lib/utils";
 
 export default function CreateRole() {
   const navigate = useNavigate();
@@ -53,6 +56,7 @@ export default function CreateRole() {
   const [weights, setWeights] = useState<PriorityWeights>(defaultWeights);
   const [isImporting, setIsImporting] = useState(false);
   const [importedFileName, setImportedFileName] = useState<string | null>(null);
+  const [usedFallback, setUsedFallback] = useState(false);
 
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
 
@@ -87,47 +91,66 @@ export default function CreateRole() {
     setSkills(skills.filter((s) => s !== skill));
   };
 
-  const extractTextFromFile = useCallback(async (file: File): Promise<string> => {
+  const extractTextFromFile = useCallback(async (file: File): Promise<{ text: string; usedFallback: boolean }> => {
     // For PDF files
     if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-      const arrayBuffer = await file.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8Array);
-      
-      // Try to extract readable text
-      const matches = text.match(/\(([^)]+)\)/g);
-      if (matches) {
-        const extracted = matches
-          .map((m) => m.slice(1, -1))
-          .filter((s) => s.length > 2 && /[a-zA-Z]/.test(s))
-          .join(" ");
-        if (extracted.length > 50) return extracted;
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8Array);
+        
+        // Try to extract readable text
+        const matches = text.match(/\(([^)]+)\)/g);
+        if (matches) {
+          const extracted = matches
+            .map((m) => m.slice(1, -1))
+            .filter((s) => s.length > 2 && /[a-zA-Z]/.test(s))
+            .join(" ");
+          
+          if (extracted.length > 50 && isReadableText(extracted)) {
+            return { text: cleanExtractedText(extracted), usedFallback: false };
+          }
+        }
+      } catch (e) {
+        console.error("PDF extraction error:", e);
       }
-      
-      return `[PDF imported from ${file.name}]\n\nNote: For best text extraction, please paste the JD content manually or use a text file. PDF text extraction in browser is limited.`;
+      // Fallback for failed PDF extraction
+      return { text: FALLBACK_JD_TEXT, usedFallback: true };
     }
 
     // For DOCX files
     if (file.name.toLowerCase().endsWith(".docx")) {
-      const arrayBuffer = await file.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8Array);
-      
-      // Try to extract text from XML
-      const matches = text.match(/<w:t[^>]*>(.*?)<\/w:t>/g);
-      if (matches) {
-        return matches
-          .map((m) => m.replace(/<w:t[^>]*>|<\/w:t>/g, ""))
-          .join(" ")
-          .replace(/\s+/g, " ")
-          .trim();
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const text = new TextDecoder("utf-8", { fatal: false }).decode(uint8Array);
+        
+        // Try to extract text from XML
+        const matches = text.match(/<w:t[^>]*>(.*?)<\/w:t>/g);
+        if (matches) {
+          const extracted = matches
+            .map((m) => m.replace(/<w:t[^>]*>|<\/w:t>/g, ""))
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim();
+          
+          if (isReadableText(extracted)) {
+            return { text: cleanExtractedText(extracted), usedFallback: false };
+          }
+        }
+      } catch (e) {
+        console.error("DOCX extraction error:", e);
       }
-      
-      return `[DOCX imported from ${file.name}]`;
+      // Fallback for failed DOCX extraction
+      return { text: FALLBACK_JD_TEXT, usedFallback: true };
     }
 
     // For text files
-    return await file.text();
+    const textContent = await file.text();
+    if (isReadableText(textContent)) {
+      return { text: textContent, usedFallback: false };
+    }
+    return { text: FALLBACK_JD_TEXT, usedFallback: true };
   }, []);
 
   const handleImportJd = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,18 +171,32 @@ export default function CreateRole() {
 
     setIsImporting(true);
     try {
-      const text = await extractTextFromFile(file);
-      setDescription(text);
+      const result = await extractTextFromFile(file);
+      setDescription(result.text);
       setImportedFileName(file.name);
-      toast({
-        title: "JD Imported",
-        description: `Content from "${file.name}" has been added to the description.`,
-      });
+      setUsedFallback(result.usedFallback);
+      
+      if (result.usedFallback) {
+        toast({
+          title: "Using default JD",
+          description: "PDF content couldn't be extracted. Default JD loaded for analysis.",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "JD Imported",
+          description: `Content from "${file.name}" has been added to the description.`,
+        });
+      }
     } catch (error) {
+      // On any error, use fallback JD
+      setDescription(FALLBACK_JD_TEXT);
+      setImportedFileName(file.name);
+      setUsedFallback(true);
       toast({
-        title: "Import Failed",
-        description: "Could not extract text from the file. Please try again.",
-        variant: "destructive",
+        title: "Using default JD",
+        description: "Import failed. Default JD loaded for analysis.",
+        variant: "default",
       });
     } finally {
       setIsImporting(false);
@@ -214,9 +251,21 @@ export default function CreateRole() {
         </div>
         <div className="flex items-center gap-2">
           {importedFileName && (
-            <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-              <Check className="h-3 w-3 mr-1" />
-              {importedFileName}
+            <Badge variant="outline" className={cn(
+              "border-success/20",
+              usedFallback ? "bg-amber-500/10 text-amber-600" : "bg-success/10 text-success"
+            )}>
+              {usedFallback ? (
+                <>
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  Default JD
+                </>
+              ) : (
+                <>
+                  <Check className="h-3 w-3 mr-1" />
+                  {importedFileName}
+                </>
+              )}
             </Badge>
           )}
           <Button
