@@ -89,8 +89,7 @@ function StatusBadge({ status }: { status: Candidate["status"] }) {
   );
 }
 
-// Default JD text for roles that have JD pre-filled
-const DEFAULT_JD_TEXT = `We are looking for a Senior React Engineer with 5+ years of experience in React, TypeScript, and modern frontend development. Experience with Node.js, GraphQL, and cloud services is preferred.`;
+import { SENIOR_REACT_ENGINEER_JD } from "@/lib/mockData";
 
 export default function Candidates() {
   const navigate = useNavigate();
