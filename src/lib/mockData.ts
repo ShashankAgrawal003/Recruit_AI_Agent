@@ -78,6 +78,9 @@ export interface PriorityWeights {
   availability: number;
 }
 
+// Default JD for Senior React Engineer role
+export const SENIOR_REACT_ENGINEER_JD = "We are looking for a Senior React Engineer with 5+ years of experience in React, TypeScript, and modern frontend development. Experience with Node.js, GraphQL, and cloud services is preferred.";
+
 export const mockJobs: Job[] = [
   {
     id: '1',
@@ -90,6 +93,8 @@ export const mockJobs: Job[] = [
     shortlistCount: 3,
     rejectedCount: 45,
     hasJD: true,
+    jdFileName: 'Senior_React_Engineer_JD.pdf',
+    jdContent: SENIOR_REACT_ENGINEER_JD,
     createdAt: '2024-01-15'
   },
   {
@@ -103,6 +108,8 @@ export const mockJobs: Job[] = [
     shortlistCount: 1,
     rejectedCount: 12,
     hasJD: true,
+    jdFileName: 'Product_Designer_JD.pdf',
+    jdContent: 'We are seeking a talented Product Designer with 3+ years of experience in UI/UX design. Proficiency in Figma, user research, and design systems is required. Experience with B2B SaaS products is preferred.',
     createdAt: '2024-01-10'
   },
   {
@@ -129,6 +136,8 @@ export const mockJobs: Job[] = [
     shortlistCount: 0,
     rejectedCount: 5,
     hasJD: true,
+    jdFileName: 'Customer_Success_Manager_JD.pdf',
+    jdContent: 'We are looking for a Customer Success Manager with 2+ years of experience in customer-facing roles. Strong communication skills and experience with SaaS platforms is required.',
     createdAt: '2024-01-20'
   },
   {
