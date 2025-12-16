@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 
 export default function CreateRole() {
   const navigate = useNavigate();
-  const { addJob, setActiveJobJd } = useApp();
+  const { addJob, updateJobJd } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [jobTitle, setJobTitle] = useState("");
@@ -211,14 +211,9 @@ export default function CreateRole() {
       shortlistCount: 0,
       rejectedCount: 0,
       hasJD: !!description,
+      jdFileName: description ? (importedFileName || `${jobTitle || "Role"} JD.txt`) : undefined,
+      jdContent: description || undefined,
     });
-
-    if (description) {
-      setActiveJobJd({
-        fileName: importedFileName || `${jobTitle || "Role"} JD.txt`,
-        content: description,
-      });
-    }
 
     toast({
       title: "Role Created!",
