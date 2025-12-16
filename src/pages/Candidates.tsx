@@ -321,27 +321,16 @@ export default function Candidates() {
         {!hasPrefilledJd && effectiveJdContent && (
           <h2 className="font-semibold text-foreground mb-3">Step 2: Upload Resumes</h2>
         )}
-        {needsJdUpload ? (
-          <div className="card-elevated p-6 opacity-60">
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                Please upload a Job Description above before uploading resumes.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <ResumeUploader
-            files={files}
-            isUploading={isUploading}
-            onFilesSelected={addFiles}
-            onRemoveFile={removeFile}
-            onRetryFile={retryFile}
-            onUpload={uploadFiles}
-            onCancelUpload={cancelUpload}
-            onClearAll={clearAll}
-            disabled={needsJdUpload}
-          />
-        )}
+        <ResumeUploader
+          files={files}
+          isUploading={isUploading}
+          onFilesSelected={addFiles}
+          onRemoveFile={removeFile}
+          onRetryFile={retryFile}
+          onUpload={uploadFiles}
+          onCancelUpload={cancelUpload}
+          onClearAll={clearAll}
+        />
       </div>
 
       {/* Active JD Banner - Only show if JD is set */}
