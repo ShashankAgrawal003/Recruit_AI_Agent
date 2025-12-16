@@ -79,7 +79,7 @@ export interface PriorityWeights {
 export const mockJobs: Job[] = [
   {
     id: '1',
-    title: 'Senior Full Stack Engineer',
+    title: 'Senior React Engineer',
     location: 'India',
     locationType: 'Hybrid',
     status: 'Active',
