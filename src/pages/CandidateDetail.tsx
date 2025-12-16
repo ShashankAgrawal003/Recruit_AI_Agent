@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useApp } from "@/contexts/AppContext";
 import { parseExperienceFromText, parseEducationFromText, calculateOverallFit } from "@/lib/parseResumeText";
-import { OverallFitBadge } from "@/components/OverallFitBadge";
+
 export default function CandidateDetail() {
   const {
     id
@@ -465,7 +465,7 @@ Recruit-AI Team`;
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-muted-foreground">BASE: <strong className="text-foreground">{candidate.baseScore}%</strong></span>
                   <span className="text-muted-foreground">WEIGHTED: <strong className="text-primary">{candidate.weightedScore}%</strong></span>
-                  <OverallFitBadge fit={overallFit} size="md" />
+                  
                   {candidate.recommendedAction && <Badge className={cn("text-xs", candidate.recommendedAction === "Interview" && "bg-success/10 text-success border-success/30", candidate.recommendedAction === "Reject" && "bg-destructive/10 text-destructive border-destructive/30", candidate.recommendedAction === "Hold" && "bg-warning/10 text-warning border-warning/30")} variant="outline">
                       {candidate.recommendedAction}
                     </Badge>}
