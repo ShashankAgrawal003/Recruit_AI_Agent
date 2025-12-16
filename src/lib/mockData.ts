@@ -9,6 +9,8 @@ export interface Job {
   shortlistCount: number;
   rejectedCount: number;
   hasJD: boolean;
+  jdFileName?: string;
+  jdContent?: string;
   createdAt: string;
 }
 

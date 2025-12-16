@@ -10,10 +10,10 @@ interface AppContextType {
   updateCandidate: (id: string, updates: Partial<Candidate>) => void;
   getJobById: (id: string) => Job | undefined;
   getCandidateById: (id: string) => Candidate | undefined;
+  updateJobJd: (jobId: string, fileName: string, content: string) => void;
+  clearJobJd: (jobId: string) => void;
   activeJobId: string | null;
   setActiveJobId: (id: string | null) => void;
-  activeJobJd: { fileName: string; content: string } | null;
-  setActiveJobJd: (jd: { fileName: string; content: string } | null) => void;
   kpis: {
     activeRoles: number;
     totalApplicants: number;
@@ -29,7 +29,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>(mockJobs);
   const [candidates, setCandidates] = useState<Candidate[]>(mockCandidates);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
-  const [activeJobJd, setActiveJobJd] = useState<{ fileName: string; content: string } | null>(null);
 
   const addJob = useCallback((jobData: Omit<Job, "id" | "createdAt">) => {
     const newJob: Job = {
@@ -70,6 +69,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return candidates.find((c) => c.id === id);
   }, [candidates]);
 
+  // Update JD for a specific job
+  const updateJobJd = useCallback((jobId: string, fileName: string, content: string) => {
+    setJobs((prev) =>
+      prev.map((job) =>
+        job.id === jobId
+          ? { ...job, jdFileName: fileName, jdContent: content, hasJD: true }
+          : job
+      )
+    );
+  }, []);
+
+  // Clear JD for a specific job
+  const clearJobJd = useCallback((jobId: string) => {
+    setJobs((prev) =>
+      prev.map((job) =>
+        job.id === jobId
+          ? { ...job, jdFileName: undefined, jdContent: undefined, hasJD: false }
+          : job
+      )
+    );
+  }, []);
+
   // Calculate KPIs based on actual data
   const kpis = {
     // Active roles: count roles with hasJD=true or status="Active"
@@ -99,10 +120,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateCandidate,
         getJobById,
         getCandidateById,
+        updateJobJd,
+        clearJobJd,
         activeJobId,
         setActiveJobId,
-        activeJobJd,
-        setActiveJobJd,
         kpis,
       }}
     >

@@ -95,7 +95,7 @@ const DEFAULT_JD_TEXT = `We are looking for a Senior React Engineer with 5+ year
 export default function Candidates() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { getJobById, activeJobJd, setActiveJobJd, candidates, addCandidate, updateCandidate, kpis } = useApp();
+  const { getJobById, updateJobJd, clearJobJd, candidates, addCandidate, updateCandidate, kpis } = useApp();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("score");
@@ -106,24 +106,12 @@ export default function Candidates() {
   const jobId = searchParams.get("job");
   const job = jobId ? getJobById(jobId) : null;
 
-  // Determine if JD is pre-filled (role has existing JD) or needs upload
-  const [localJdFileName, setLocalJdFileName] = useState<string | null>(null);
-  const [localJdContent, setLocalJdContent] = useState<string | null>(null);
+  // Get JD from the job's stored data
+  const effectiveJdFileName = job?.jdFileName || null;
+  const effectiveJdContent = job?.jdContent || null;
   
-  // Check if the job has a pre-filled JD based on the hasJD property
+  // Check if the job has a JD
   const hasPrefilledJd = job?.hasJD === true;
-  
-  useEffect(() => {
-    if (hasPrefilledJd && !localJdContent) {
-      // Pre-fill JD for active roles
-      setLocalJdFileName("Senior_React_Engineer_JD.pdf");
-      setLocalJdContent(DEFAULT_JD_TEXT);
-    }
-  }, [hasPrefilledJd, localJdContent]);
-
-  // Use either pre-filled JD, context JD, or local JD
-  const effectiveJdFileName = activeJobJd?.fileName || localJdFileName;
-  const effectiveJdContent = activeJobJd?.content || localJdContent;
 
   // Initialize resume upload hook with JD text
   const {
@@ -201,17 +189,17 @@ export default function Candidates() {
     });
   }, [files, candidates, addCandidate]);
 
-  // JD handlers
+  // JD handlers - update JD for this specific job
   const handleJdUploaded = (fileName: string, content: string) => {
-    setLocalJdFileName(fileName);
-    setLocalJdContent(content);
-    setActiveJobJd({ fileName, content });
+    if (jobId) {
+      updateJobJd(jobId, fileName, content);
+    }
   };
 
   const handleJdClear = () => {
-    setLocalJdFileName(null);
-    setLocalJdContent(null);
-    setActiveJobJd(null);
+    if (jobId) {
+      clearJobJd(jobId);
+    }
   };
 
   // Determine if resume upload should be disabled (no JD uploaded for non-prefilled roles)
